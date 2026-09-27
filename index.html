@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0f172a" />
+  <title>Sala privada de registro</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="shell">
+    <section id="landing" class="card hero">
+      <div class="eyebrow">Registro colaborativo privado</div>
+      <h1>Una hoja compartida para tu grupo</h1>
+      <p class="lead">Crea una sala, comparte el enlace y la clave, y cada integrante podrá agregarse y ver el listado común.</p>
+      <div class="privacy-note">
+        <strong>Sin base de datos central del proyecto.</strong>
+        <span>La información se conserva en los navegadores de los participantes y se sincroniza entre ellos.</span>
+      </div>
+      <button id="createRoomBtn" class="primary">Crear una sala</button>
+    </section>
+
+    <section id="joinCard" class="card hidden">
+      <div class="eyebrow">Sala privada</div>
+      <h1>Ingresar a la sala</h1>
+      <p class="lead">Escribe la clave que te compartió el grupo.</p>
+      <label>
+        Clave de acceso
+        <input id="pinInput" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="00000000" />
+      </label>
+      <button id="joinBtn" class="primary">Entrar</button>
+      <p id="joinError" class="error hidden"></p>
+    </section>
+
+    <section id="app" class="hidden">
+      <header class="topbar card">
+        <div>
+          <div class="eyebrow">Sala activa</div>
+          <h1 id="roomTitle">Hoja compartida</h1>
+          <p class="muted"><span id="peerCount">0</span> integrante(s) conectados ahora</p>
+        </div>
+        <div class="top-actions">
+          <button id="shareBtn" class="secondary">Compartir acceso</button>
+          <button id="copyLinkBtn" class="secondary">Copiar enlace</button>
+        </div>
+      </header>
+
+      <section class="grid">
+        <article class="card">
+          <div class="section-head">
+            <div>
+              <div class="eyebrow">Mi inscripción</div>
+              <h2>Agregar participante</h2>
+            </div>
+          </div>
+
+          <form id="participantForm">
+            <label>
+              Nombre completo
+              <input id="name" name="name" required maxlength="100" placeholder="Ej. Ana Martínez" />
+            </label>
+            <label>
+              Teléfono
+              <input id="phone" name="phone" maxlength="40" placeholder="Opcional" />
+            </label>
+            <label>
+              Institución / cargo
+              <input id="organization" name="organization" maxlength="120" placeholder="Opcional" />
+            </label>
+            <label>
+              Observaciones
+              <textarea id="notes" name="notes" rows="3" maxlength="300" placeholder="Opcional"></textarea>
+            </label>
+            <button type="submit" class="primary">Agregarme al listado</button>
+            <p id="formStatus" class="status hidden"></p>
+          </form>
+        </article>
+
+        <article class="card list-card">
+          <div class="section-head split">
+            <div>
+              <div class="eyebrow">Listado común</div>
+              <h2>Participantes</h2>
+              <p class="muted"><span id="entryCount">0</span> registro(s)</p>
+            </div>
+            <div class="list-actions">
+              <button id="csvBtn" class="secondary">CSV</button>
+              <button id="printBtn" class="secondary">Imprimir / PDF</button>
+            </div>
+          </div>
+
+          <div id="emptyState" class="empty">Todavía no hay participantes registrados.</div>
+          <div class="table-wrap">
+            <table id="participantsTable" class="hidden">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Nombre</th>
+                  <th>Teléfono</th>
+                  <th>Institución / cargo</th>
+                  <th>Observaciones</th>
+                </tr>
+              </thead>
+              <tbody id="participantsBody"></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+
+      <section class="card info-card">
+        <h3>Privacidad de esta versión</h3>
+        <p>El enlace identifica la sala y la clave permite conectarse. Los datos del formulario no se guardan en una base de datos central de esta aplicación. Para recuperar la lista en un dispositivo nuevo, al menos un integrante que ya tenga una copia debe conectarse y sincronizarla.</p>
+      </section>
+    </section>
+  </main>
+
+  <dialog id="shareDialog">
+    <form method="dialog" class="dialog-card">
+      <div class="eyebrow">Invitación</div>
+      <h2>Comparte estos datos con el grupo</h2>
+      <label>
+        Enlace
+        <input id="shareLink" readonly />
+      </label>
+      <label>
+        Clave
+        <input id="sharePin" readonly />
+      </label>
+      <div class="dialog-actions">
+        <button type="button" id="copyInviteBtn" class="primary">Copiar invitación</button>
+        <button value="cancel" class="secondary">Cerrar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
