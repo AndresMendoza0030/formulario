@@ -3,102 +3,210 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#0f172a" />
-  <title>Sala privada de registro</title>
+  <meta name="theme-color" content="#102a43" />
+  <title>Hoja de registro | Sociedad de Radiología</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+  <div class="page-accent"></div>
+
   <main class="shell">
-    <section id="landing" class="card hero">
-      <div class="eyebrow">Registro colaborativo privado</div>
-      <h1>Una hoja compartida para tu grupo</h1>
-      <p class="lead">Crea una sala, comparte el enlace y la clave, y cada integrante podrá agregarse y ver el listado común.</p>
-      <div class="privacy-note">
-        <strong>Sin base de datos central del proyecto.</strong>
-        <span>La información se conserva en los navegadores de los participantes y se sincroniza entre ellos.</span>
+    <section id="landing" class="institutional-panel hero">
+      <div class="brand-row">
+        <div class="brand-seal" aria-hidden="true">
+          <span>SR</span>
+        </div>
+        <div>
+          <div class="brand-name">Sociedad de Radiología</div>
+          <div class="brand-subtitle">Proceso de incorporación</div>
+        </div>
       </div>
-      <button id="createRoomBtn" class="primary">Crear una sala</button>
+
+      <div class="hero-divider"></div>
+
+      <div class="hero-grid">
+        <div>
+          <div class="eyebrow">Hoja de registro</div>
+          <h1>Incorporación a la Sociedad de Radiología</h1>
+          <p class="lead">
+            Espacio privado de registro para aspirantes. Cada integrante puede completar su información
+            y consultar el listado común de participantes autorizados en la misma sala.
+          </p>
+
+          <div class="privacy-note">
+            <div class="privacy-icon" aria-hidden="true">✓</div>
+            <div>
+              <strong>Acceso compartido únicamente con el grupo</strong>
+              <span>La hoja se identifica mediante un enlace privado y una clave de acceso.</span>
+            </div>
+          </div>
+
+          <button id="createRoomBtn" class="primary large">Crear hoja de registro</button>
+        </div>
+
+        <aside class="hero-summary" aria-label="Datos solicitados">
+          <div class="summary-kicker">Información requerida</div>
+          <ol>
+            <li>Nombre completo</li>
+            <li>Teléfono</li>
+            <li>Correo electrónico</li>
+            <li>Nro. de CONADEM</li>
+            <li>Tipo de trabajo a presentar</li>
+          </ol>
+        </aside>
+      </div>
     </section>
 
-    <section id="joinCard" class="card hidden">
-      <div class="eyebrow">Sala privada</div>
-      <h1>Ingresar a la sala</h1>
-      <p class="lead">Escribe la clave que te compartió el grupo.</p>
-      <label>
+    <section id="joinCard" class="institutional-panel join-panel hidden">
+      <div class="brand-row compact">
+        <div class="brand-seal small" aria-hidden="true"><span>SR</span></div>
+        <div>
+          <div class="brand-name">Sociedad de Radiología</div>
+          <div class="brand-subtitle">Hoja de registro para incorporación</div>
+        </div>
+      </div>
+
+      <div class="form-heading">
+        <div class="eyebrow">Acceso privado</div>
+        <h1>Ingresar a la hoja de registro</h1>
+        <p class="lead">Introduzca la clave compartida por el grupo para consultar y completar el registro.</p>
+      </div>
+
+      <label class="field-label">
         Clave de acceso
         <input id="pinInput" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="00000000" />
       </label>
-      <button id="joinBtn" class="primary">Entrar</button>
+      <button id="joinBtn" class="primary">Ingresar</button>
       <p id="joinError" class="error hidden"></p>
     </section>
 
     <section id="app" class="hidden">
-      <header class="topbar card">
-        <div>
-          <div class="eyebrow">Sala activa</div>
-          <h1 id="roomTitle">Hoja compartida</h1>
-          <p class="muted"><span id="peerCount">0</span> integrante(s) conectados ahora</p>
+      <header class="institutional-header">
+        <div class="brand-row">
+          <div class="brand-seal" aria-hidden="true"><span>SR</span></div>
+          <div>
+            <div class="brand-name">Sociedad de Radiología</div>
+            <div class="brand-subtitle">Proceso de incorporación</div>
+          </div>
         </div>
+
+        <div class="header-title">
+          <div class="eyebrow light">Hoja de registro</div>
+          <h1 id="roomTitle">Incorporación a la Sociedad de Radiología</h1>
+          <p><span id="peerCount">0</span> integrante(s) conectados en este momento</p>
+        </div>
+
         <div class="top-actions">
-          <button id="shareBtn" class="secondary">Compartir acceso</button>
-          <button id="copyLinkBtn" class="secondary">Copiar enlace</button>
+          <button id="shareBtn" class="ghost-light">Compartir acceso</button>
+          <button id="copyLinkBtn" class="ghost-light">Copiar enlace</button>
         </div>
       </header>
 
-      <section class="grid">
-        <article class="card">
-          <div class="section-head">
+      <section class="workspace">
+        <article class="institutional-panel form-card">
+          <div class="section-heading">
+            <div class="section-number">01</div>
             <div>
-              <div class="eyebrow">Mi inscripción</div>
-              <h2>Agregar participante</h2>
+              <div class="eyebrow">Datos del aspirante</div>
+              <h2>Información de registro</h2>
+              <p>Complete los campos solicitados para incorporarse al listado común.</p>
             </div>
           </div>
 
           <form id="participantForm">
-            <label>
-              Nombre completo
-              <input id="name" name="name" required maxlength="100" placeholder="Ej. Ana Martínez" />
-            </label>
-            <label>
-              Teléfono
-              <input id="phone" name="phone" maxlength="40" placeholder="Opcional" />
-            </label>
-            <label>
-              Institución / cargo
-              <input id="organization" name="organization" maxlength="120" placeholder="Opcional" />
-            </label>
-            <label>
-              Observaciones
-              <textarea id="notes" name="notes" rows="3" maxlength="300" placeholder="Opcional"></textarea>
-            </label>
-            <button type="submit" class="primary">Agregarme al listado</button>
-            <p id="formStatus" class="status hidden"></p>
+            <div class="form-grid">
+              <label class="field-label full">
+                Nombre completo
+                <input id="name" name="name" required maxlength="120" autocomplete="name" placeholder="Nombre y apellidos" />
+              </label>
+
+              <label class="field-label">
+                Teléfono
+                <input id="phone" name="phone" required maxlength="40" autocomplete="tel" inputmode="tel" placeholder="Número de contacto" />
+              </label>
+
+              <label class="field-label">
+                Correo electrónico
+                <input id="email" name="email" required maxlength="120" autocomplete="email" type="email" placeholder="correo@ejemplo.com" />
+              </label>
+
+              <label class="field-label full">
+                Nro. de CONADEM
+                <input id="conadem" name="conadem" required maxlength="60" placeholder="Ingrese su número de CONADEM" />
+              </label>
+            </div>
+
+            <fieldset class="work-type">
+              <legend>Tipo de trabajo que presentará el aspirante</legend>
+
+              <div class="choice-grid">
+                <label class="choice-card">
+                  <input type="radio" name="workType" value="A - Trabajo de investigación" required />
+                  <span class="choice-letter">A</span>
+                  <span class="choice-text">
+                    <strong>Trabajo de investigación</strong>
+                    <small>Presentación de investigación científica.</small>
+                  </span>
+                </label>
+
+                <label class="choice-card">
+                  <input type="radio" name="workType" value="B - Monografía" required />
+                  <span class="choice-letter">B</span>
+                  <span class="choice-text">
+                    <strong>Monografía</strong>
+                    <small>Revisión y desarrollo de un tema específico.</small>
+                  </span>
+                </label>
+
+                <label class="choice-card">
+                  <input type="radio" name="workType" value="C - Caso interesante" required />
+                  <span class="choice-letter">C</span>
+                  <span class="choice-text">
+                    <strong>Caso interesante</strong>
+                    <small>Presentación estructurada de un caso de interés.</small>
+                  </span>
+                </label>
+              </div>
+            </fieldset>
+
+            <div class="form-footer">
+              <p id="formStatus" class="status hidden"></p>
+              <button type="submit" class="primary">Incorporar al listado</button>
+            </div>
           </form>
         </article>
 
-        <article class="card list-card">
-          <div class="section-head split">
-            <div>
-              <div class="eyebrow">Listado común</div>
-              <h2>Participantes</h2>
-              <p class="muted"><span id="entryCount">0</span> registro(s)</p>
+        <article class="institutional-panel list-card">
+          <div class="section-heading list-heading">
+            <div class="section-number">02</div>
+            <div class="grow">
+              <div class="eyebrow">Registro consolidado</div>
+              <h2>Aspirantes registrados</h2>
+              <p><span id="entryCount">0</span> registro(s) incorporados a esta hoja.</p>
             </div>
+
             <div class="list-actions">
-              <button id="csvBtn" class="secondary">CSV</button>
+              <button id="csvBtn" class="secondary">Exportar CSV</button>
               <button id="printBtn" class="secondary">Imprimir / PDF</button>
             </div>
           </div>
 
-          <div id="emptyState" class="empty">Todavía no hay participantes registrados.</div>
+          <div id="emptyState" class="empty">
+            <div class="empty-mark">SR</div>
+            <strong>Aún no hay aspirantes registrados</strong>
+            <span>Los registros aparecerán aquí conforme sean incorporados.</span>
+          </div>
+
           <div class="table-wrap">
             <table id="participantsTable" class="hidden">
               <thead>
                 <tr>
                   <th>#</th>
-                  <th>Nombre</th>
+                  <th>Nombre completo</th>
                   <th>Teléfono</th>
-                  <th>Institución / cargo</th>
-                  <th>Observaciones</th>
+                  <th>Correo electrónico</th>
+                  <th>Nro. CONADEM</th>
+                  <th>Tipo de trabajo</th>
                 </tr>
               </thead>
               <tbody id="participantsBody"></tbody>
@@ -107,25 +215,37 @@
         </article>
       </section>
 
-      <section class="card info-card">
-        <h3>Privacidad de esta versión</h3>
-        <p>El enlace identifica la sala y la clave permite conectarse. Los datos del formulario no se guardan en una base de datos central de esta aplicación. Para recuperar la lista en un dispositivo nuevo, al menos un integrante que ya tenga una copia debe conectarse y sincronizarla.</p>
+      <section class="confidentiality-note">
+        <strong>Uso restringido al grupo.</strong>
+        <span>
+          El enlace identifica esta hoja y la clave permite el acceso. Los datos se conservan en los navegadores
+          participantes y se sincronizan entre integrantes de la misma sala.
+        </span>
       </section>
     </section>
   </main>
 
   <dialog id="shareDialog">
     <form method="dialog" class="dialog-card">
-      <div class="eyebrow">Invitación</div>
-      <h2>Comparte estos datos con el grupo</h2>
-      <label>
-        Enlace
+      <div class="dialog-brand">
+        <div class="brand-seal small" aria-hidden="true"><span>SR</span></div>
+        <div>
+          <div class="eyebrow">Acceso a la hoja</div>
+          <h2>Compartir con los aspirantes</h2>
+        </div>
+      </div>
+
+      <p class="dialog-intro">Comparta el enlace y la clave únicamente con las personas que participarán en este registro.</p>
+
+      <label class="field-label">
+        Enlace de acceso
         <input id="shareLink" readonly />
       </label>
-      <label>
+      <label class="field-label">
         Clave
         <input id="sharePin" readonly />
       </label>
+
       <div class="dialog-actions">
         <button type="button" id="copyInviteBtn" class="primary">Copiar invitación</button>
         <button value="cancel" class="secondary">Cerrar</button>
