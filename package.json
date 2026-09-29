@@ -8,7 +8,8 @@
     "deploy": "wrangler deploy",
     "db:local": "wrangler d1 execute formulario-radiologia-db --local --file=./schema.sql",
     "db:remote": "wrangler d1 execute formulario-radiologia-db --remote --file=./schema.sql",
-    "db:migrate-roles": "wrangler d1 execute formulario-radiologia-db --remote --file=./migrations/0002_access_roles.sql"
+    "db:migrate-roles": "wrangler d1 execute formulario-radiologia-db --remote --file=./migrations/0002_access_roles.sql",
+    "db:migrate-admin-accounts": "wrangler d1 execute formulario-radiologia-db --remote --file=./migrations/0003_admin_accounts.sql"
   },
   "devDependencies": {
     "wrangler": "^4.102.0"
