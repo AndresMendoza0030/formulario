@@ -1,27 +1,33 @@
-# Sala privada de registro
+# Hoja de registro para incorporación a la Sociedad de Radiología
 
-MVP de una hoja colaborativa para grupos pequeños.
+Aplicación web estática para registrar aspirantes dentro de una sala privada compartida.
 
-## Qué hace
+## Campos de registro
 
-- Crea una sala con URL aleatoria y clave de 8 dígitos.
-- Cada integrante puede agregar su información.
-- Los registros se sincronizan en tiempo real entre navegadores conectados.
+- Nombre completo
+- Teléfono
+- Correo electrónico
+- Nro. de CONADEM
+- Tipo de trabajo:
+  - A - Trabajo de investigación
+  - B - Monografía
+  - C - Caso interesante
+
+## Funcionamiento
+
+- Se crea una hoja privada con enlace y clave de 8 dígitos.
+- Los aspirantes autorizados pueden ingresar, completar sus datos y ver el listado común.
+- La información se sincroniza entre los navegadores participantes.
 - Cada navegador conserva localmente una copia de los registros que ha recibido.
-- Exporta el listado a CSV.
-- Permite imprimir o guardar como PDF.
+- El listado puede exportarse a CSV o imprimirse/guardarse como PDF.
 
 ## Privacidad
 
-Este MVP no usa una base de datos propia. Usa Trystero/WebRTC para conectar navegadores y enviar los datos directamente entre participantes. La clave compartida se usa como secreto de la sala.
+Este MVP no usa una base de datos propia. Utiliza Trystero/WebRTC para conectar los navegadores participantes. La clave compartida funciona como secreto de acceso a la sala.
 
-Importante: no es una solución para información altamente sensible ni sustituye un sistema con autenticación formal. Si todos los navegadores que conservan una copia dejan de participar y entra un dispositivo nuevo, ese dispositivo no puede recuperar registros que nunca recibió.
+Si todos los navegadores que conservan una copia dejan de participar y entra un dispositivo nuevo, ese dispositivo no puede recuperar registros que nunca recibió.
 
-## Publicar en GitHub Pages
-
-El sitio es 100% estático. Basta con publicar estos archivos desde la raíz de un repositorio usando GitHub Pages.
-
-Archivos:
+## Archivos
 
 - `index.html`
 - `styles.css`
