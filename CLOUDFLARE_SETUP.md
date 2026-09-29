@@ -105,3 +105,21 @@ Las nuevas salas generan dos claves:
 
 - clave de aspirantes
 - clave administrativa
+
+
+## Migración a cuentas administrativas
+
+Si la base ya estaba creada antes de implementar el login administrativo, ejecute una sola vez:
+
+```bash
+npm run db:migrate-admin-accounts
+```
+
+Después vuelva a desplegar el Worker.
+
+Al abrir la aplicación:
+
+1. Entre en **Acceso administrativo**.
+2. Cree la primera cuenta.
+3. Desde el panel cree una hoja nueva.
+4. Comparta únicamente el enlace y la clave de aspirante.
