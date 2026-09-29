@@ -14,6 +14,9 @@
   --gold-light: #eee4cf;
   --white: #ffffff;
   --success: #2f6b4f;
+  --success-bg: #edf7f1;
+  --warning: #8a6422;
+  --warning-bg: #fbf6e9;
   --danger: #a63d40;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color: var(--slate-900);
@@ -34,7 +37,9 @@ body {
   min-height: 100vh;
   background:
     radial-gradient(circle at 12% 0%, rgba(31, 78, 120, .11), transparent 27rem),
+    radial-gradient(circle at 90% 30%, rgba(177, 138, 61, .07), transparent 24rem),
     linear-gradient(180deg, #f8fafc 0%, #eef3f7 100%);
+  position: relative;
 }
 
 button,
@@ -46,14 +51,95 @@ button {
   cursor: pointer;
 }
 
+button:disabled {
+  cursor: wait;
+  opacity: .72;
+}
+
+svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .page-accent {
   height: 7px;
   background: linear-gradient(90deg, var(--navy-950), var(--navy-700) 70%, var(--gold));
+  position: relative;
+  z-index: 5;
+}
+
+.background-motifs {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
+}
+
+.motif {
+  position: absolute;
+  color: var(--navy-700);
+  opacity: .055;
+  width: 120px;
+  height: 120px;
+  stroke-width: 1.35;
+  animation: motif-float 14s ease-in-out infinite alternate;
+}
+
+.motif-ct {
+  left: 3%;
+  top: 18%;
+  width: 155px;
+  height: 155px;
+  transform: rotate(-8deg);
+}
+
+.motif-scan {
+  right: 4%;
+  top: 10%;
+  width: 145px;
+  height: 145px;
+  animation-delay: -4s;
+}
+
+.motif-wave {
+  left: 7%;
+  bottom: 8%;
+  width: 170px;
+  height: 170px;
+  animation-delay: -7s;
+}
+
+.motif-crosshair {
+  right: 9%;
+  bottom: 13%;
+  width: 135px;
+  height: 135px;
+  animation-delay: -9s;
+}
+
+.motif-film {
+  right: 34%;
+  top: 54%;
+  width: 110px;
+  height: 110px;
+  opacity: .035;
+  animation-delay: -2s;
+}
+
+@keyframes motif-float {
+  from { translate: 0 -4px; rotate: -1deg; }
+  to { translate: 0 10px; rotate: 2deg; }
 }
 
 .shell {
   width: min(1240px, calc(100% - 32px));
   margin: 34px auto 56px;
+  position: relative;
+  z-index: 1;
 }
 
 .hidden {
@@ -61,10 +147,11 @@ button {
 }
 
 .institutional-panel {
-  background: rgba(255, 255, 255, .98);
+  background: rgba(255, 255, 255, .965);
   border: 1px solid rgba(16, 42, 67, .12);
   border-radius: 18px;
   box-shadow: 0 18px 50px rgba(11, 31, 51, .08);
+  backdrop-filter: blur(7px);
 }
 
 .hero {
@@ -206,7 +293,7 @@ h2 {
 }
 
 .privacy-note {
-  margin: 27px 0 30px;
+  margin: 27px 0 24px;
   padding: 16px 18px;
   border: 1px solid var(--slate-200);
   border-left: 3px solid var(--gold);
@@ -235,15 +322,33 @@ h2 {
 }
 
 .privacy-icon {
-  width: 25px;
-  height: 25px;
+  width: 29px;
+  height: 29px;
   border-radius: 50%;
   background: var(--navy-100);
   color: var(--navy-700);
   display: grid;
   place-items: center;
-  font-weight: 800;
   flex: 0 0 auto;
+}
+
+.privacy-icon svg {
+  width: 17px;
+  height: 17px;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.recovery-hint {
+  color: var(--slate-500);
+  font-size: .82rem;
+  line-height: 1.5;
+  max-width: 720px;
+  margin: 14px 0 0;
 }
 
 .hero-summary {
@@ -286,6 +391,10 @@ h2 {
   padding: 12px 18px;
   font-weight: 760;
   transition: transform .15s ease, background .15s ease, border-color .15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
 .primary {
@@ -300,8 +409,15 @@ h2 {
   transform: translateY(-1px);
 }
 
-.primary.large {
+.primary.large,
+.secondary.large {
   padding: 14px 22px;
+}
+
+.primary.compact,
+.secondary.compact {
+  padding: 10px 13px;
+  font-size: .84rem;
 }
 
 .secondary {
@@ -323,6 +439,12 @@ h2 {
 
 .ghost-light:hover {
   background: rgba(255, 255, 255, .13);
+}
+
+.button-icon {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 auto;
 }
 
 .join-panel {
@@ -434,6 +556,133 @@ input:focus {
   right: 30px;
   bottom: 30px;
   z-index: 2;
+}
+
+.backup-panel {
+  margin-top: 18px;
+  padding: 22px 24px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+}
+
+.backup-symbol,
+.restore-symbol {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  background: var(--navy-100);
+  color: var(--navy-700);
+  display: grid;
+  place-items: center;
+}
+
+.backup-symbol svg,
+.restore-symbol svg {
+  width: 24px;
+  height: 24px;
+}
+
+.backup-copy p {
+  color: var(--slate-500);
+  line-height: 1.55;
+  font-size: .88rem;
+  margin: 7px 0 12px;
+  max-width: 780px;
+}
+
+.backup-title-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.custodian-badge {
+  white-space: nowrap;
+  padding: 6px 9px;
+  border-radius: 999px;
+  background: var(--gold-light);
+  color: #76591e;
+  font-size: .72rem;
+  font-weight: 800;
+  letter-spacing: .02em;
+}
+
+.backup-statuses {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--slate-200);
+  border-radius: 999px;
+  background: var(--slate-100);
+  color: var(--slate-700);
+  font-size: .75rem;
+  font-weight: 750;
+  padding: 6px 10px;
+}
+
+.status-chip svg {
+  width: 14px;
+  height: 14px;
+}
+
+.status-chip.ok {
+  border-color: #cfe2d7;
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+.status-chip.pending {
+  border-color: #ead9b8;
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+
+.backup-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-width: 360px;
+}
+
+.backup-warning {
+  margin-top: 12px;
+  padding: 13px 17px;
+  border: 1px solid #e5d4ac;
+  border-left: 3px solid var(--gold);
+  border-radius: 10px;
+  background: var(--warning-bg);
+  color: #70531d;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.backup-warning svg {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+.backup-warning strong,
+.backup-warning span {
+  display: block;
+}
+
+.backup-warning span {
+  margin-top: 2px;
+  font-size: .81rem;
+  line-height: 1.45;
 }
 
 .workspace {
@@ -690,7 +939,7 @@ tbody tr:hover {
   color: var(--slate-500);
   font-size: .82rem;
   line-height: 1.55;
-  background: rgba(255, 255, 255, .64);
+  background: rgba(255, 255, 255, .68);
 }
 
 .confidentiality-note strong {
@@ -741,6 +990,42 @@ dialog::backdrop {
   margin-top: 22px;
 }
 
+.restore-file-summary {
+  margin: 16px 0 4px;
+  border: 1px solid var(--slate-200);
+  background: var(--slate-100);
+  border-radius: 9px;
+  padding: 12px 14px;
+}
+
+.restore-file-summary strong,
+.restore-file-summary span {
+  display: block;
+}
+
+.restore-file-summary strong {
+  color: var(--navy-900);
+  font-size: .87rem;
+}
+
+.restore-file-summary span {
+  color: var(--slate-500);
+  font-size: .78rem;
+  margin-top: 3px;
+}
+
+@media (max-width: 1000px) {
+  .backup-panel {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .backup-actions {
+    grid-column: 2;
+    justify-content: flex-start;
+    max-width: none;
+  }
+}
+
 @media (max-width: 900px) {
   .hero {
     padding: 30px 26px 32px;
@@ -773,6 +1058,10 @@ dialog::backdrop {
   .choice-card {
     min-height: auto;
   }
+
+  .motif-film {
+    display: none;
+  }
 }
 
 @media (max-width: 650px) {
@@ -791,6 +1080,33 @@ dialog::backdrop {
 
   h1 {
     font-size: 2.15rem;
+  }
+
+  .hero-actions {
+    display: grid;
+  }
+
+  .hero-actions button {
+    width: 100%;
+  }
+
+  .backup-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .backup-symbol {
+    width: 40px;
+    height: 40px;
+  }
+
+  .backup-actions {
+    grid-column: 1;
+    display: grid;
+  }
+
+  .backup-title-row {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .form-grid {
@@ -840,6 +1156,16 @@ dialog::backdrop {
   .top-actions button {
     flex: 1;
   }
+
+  .motif {
+    opacity: .035;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .motif {
+    animation: none;
+  }
 }
 
 @media print {
@@ -847,7 +1173,8 @@ dialog::backdrop {
     background: white;
   }
 
-  .page-accent {
+  .page-accent,
+  .background-motifs {
     display: none;
   }
 
@@ -876,6 +1203,8 @@ dialog::backdrop {
   }
 
   .top-actions,
+  .backup-panel,
+  .backup-warning,
   .form-card,
   .confidentiality-note,
   .list-actions {
