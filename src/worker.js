@@ -3,6 +3,7 @@ const encoder = new TextEncoder();
 const SESSION_HOURS = 24;
 const PIN_ITERATIONS = 100000;
 const WORK_TYPES = new Set(["A", "B", "C"]);
+const ACCESS_ROLES = new Set(["participant", "admin"]);
 const ROOM_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
 function json(data, status = 200) {
@@ -93,52 +94,60 @@ function safeEqual(a, b) {
   return diff === 0;
 }
 
-async function verifyRoomPin(env, roomId, pin) {
+async function verifyRoomPin(env, roomId, pin, role) {
   const room = await env.DB.prepare(
-    "SELECT id, pin_salt, pin_hash, active FROM rooms WHERE id = ?1 LIMIT 1"
+    `SELECT id, pin_salt, pin_hash, admin_pin_salt, admin_pin_hash, active
+     FROM rooms
+     WHERE id = ?1
+     LIMIT 1`
   ).bind(roomId).first();
 
   if (!room || Number(room.active) !== 1) return false;
 
-  const candidate = await derivePinHash(pin, fromBase64Url(room.pin_salt));
-  return safeEqual(candidate, room.pin_hash);
+  const saltText = role === "admin" ? room.admin_pin_salt : room.pin_salt;
+  const hashText = role === "admin" ? room.admin_pin_hash : room.pin_hash;
+
+  if (!saltText || !hashText) return false;
+
+  const candidate = await derivePinHash(pin, fromBase64Url(saltText));
+  return safeEqual(candidate, hashText);
 }
 
-async function issueSession(env, roomId) {
+async function issueSession(env, roomId, role) {
   const token = randomToken();
   const tokenHash = await sha256(token);
   const createdAt = new Date().toISOString();
   const expiresAt = new Date(Date.now() + SESSION_HOURS * 60 * 60 * 1000).toISOString();
 
   await env.DB.prepare(
-    "INSERT INTO room_sessions (token_hash, room_id, created_at, expires_at) VALUES (?1, ?2, ?3, ?4)"
-  ).bind(tokenHash, roomId, createdAt, expiresAt).run();
+    `INSERT INTO room_sessions
+     (token_hash, room_id, role, created_at, expires_at)
+     VALUES (?1, ?2, ?3, ?4, ?5)`
+  ).bind(tokenHash, roomId, role, createdAt, expiresAt).run();
 
-  return { token, expiresAt };
+  return { token, role, expiresAt };
 }
 
-async function authenticate(request, env, roomId) {
+async function getSession(request, env, roomId) {
   const auth = request.headers.get("authorization") || "";
-  if (!auth.startsWith("Bearer ")) return false;
+  if (!auth.startsWith("Bearer ")) return null;
 
   const token = auth.slice(7).trim();
-  if (!token) return false;
+  if (!token) return null;
 
   const tokenHash = await sha256(token);
   const now = new Date().toISOString();
 
-  const session = await env.DB.prepare(
-    `SELECT s.room_id
-       FROM room_sessions s
-       INNER JOIN rooms r ON r.id = s.room_id
-       WHERE s.token_hash = ?1
-         AND s.room_id = ?2
-         AND s.expires_at > ?3
-         AND r.active = 1
-       LIMIT 1`
+  return env.DB.prepare(
+    `SELECT s.room_id, s.role
+     FROM room_sessions s
+     INNER JOIN rooms r ON r.id = s.room_id
+     WHERE s.token_hash = ?1
+       AND s.room_id = ?2
+       AND s.expires_at > ?3
+       AND r.active = 1
+     LIMIT 1`
   ).bind(tokenHash, roomId, now).first();
-
-  return Boolean(session);
 }
 
 async function cleanupSessions(env) {
@@ -174,20 +183,35 @@ function validateParticipant(value) {
 async function createRoom(env) {
   await cleanupSessions(env);
 
-  const pin = randomPin();
-  const salt = crypto.getRandomValues(new Uint8Array(16));
-  const pinHash = await derivePinHash(pin, salt);
-  const createdAt = new Date().toISOString();
+  const participantPin = randomPin();
+  let adminPin = randomPin();
+  while (adminPin === participantPin) adminPin = randomPin();
 
+  const participantSalt = crypto.getRandomValues(new Uint8Array(16));
+  const adminSalt = crypto.getRandomValues(new Uint8Array(16));
+
+  const [participantHash, adminHash] = await Promise.all([
+    derivePinHash(participantPin, participantSalt),
+    derivePinHash(adminPin, adminSalt)
+  ]);
+
+  const createdAt = new Date().toISOString();
   let roomId = null;
 
   for (let attempt = 0; attempt < 5; attempt += 1) {
     const candidate = randomRoomId();
     const result = await env.DB.prepare(
       `INSERT OR IGNORE INTO rooms
-       (id, pin_salt, pin_hash, created_at, updated_at, active)
-       VALUES (?1, ?2, ?3, ?4, ?4, 1)`
-    ).bind(candidate, toBase64Url(salt), pinHash, createdAt).run();
+       (id, pin_salt, pin_hash, admin_pin_salt, admin_pin_hash, created_at, updated_at, active)
+       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?6, 1)`
+    ).bind(
+      candidate,
+      toBase64Url(participantSalt),
+      participantHash,
+      toBase64Url(adminSalt),
+      adminHash,
+      createdAt
+    ).run();
 
     if (Number(result.meta?.changes || 0) > 0) {
       roomId = candidate;
@@ -197,13 +221,14 @@ async function createRoom(env) {
 
   if (!roomId) throw new Error("No se pudo crear un código de sala único.");
 
-  const session = await issueSession(env, roomId);
+  const session = await issueSession(env, roomId, "admin");
 
   return json({
     ok: true,
     room: {
       id: roomId,
-      pin,
+      participantPin,
+      adminPin,
       createdAt
     },
     session
@@ -215,30 +240,39 @@ async function accessRoom(request, env, roomId) {
 
   const body = await readJson(request);
   const pin = String(body?.pin || "").replace(/\D/g, "");
+  const role = String(body?.role || "participant").trim().toLowerCase();
 
+  if (!ACCESS_ROLES.has(role)) return fail("Tipo de acceso inválido.", 400);
   if (pin.length !== 8) return fail("La clave debe contener 8 dígitos.", 400);
 
-  const valid = await verifyRoomPin(env, roomId, pin);
-  if (!valid) return fail("Código de sala o clave incorrectos.", 401);
+  const valid = await verifyRoomPin(env, roomId, pin, role);
+  if (!valid) {
+    return fail(
+      role === "admin"
+        ? "Código de sala o clave administrativa incorrectos."
+        : "Código de sala o clave de aspirante incorrectos.",
+      401
+    );
+  }
 
-  const session = await issueSession(env, roomId);
-  const count = await env.DB.prepare(
-    "SELECT COUNT(*) AS total FROM participants WHERE room_id = ?1"
-  ).bind(roomId).first();
+  const session = await issueSession(env, roomId, role);
 
   return json({
     ok: true,
-    room: {
-      id: roomId,
-      participantCount: Number(count?.total || 0)
-    },
+    room: { id: roomId },
     session
   });
 }
 
 async function listParticipants(request, env, roomId) {
-  if (!(await authenticate(request, env, roomId))) {
+  const session = await getSession(request, env, roomId);
+
+  if (!session) {
     return fail("La sesión de esta sala no es válida o ha vencido.", 401);
+  }
+
+  if (session.role !== "admin") {
+    return fail("Solo el administrador de la hoja puede consultar el listado completo.", 403);
   }
 
   const result = await env.DB.prepare(
@@ -256,7 +290,9 @@ async function listParticipants(request, env, roomId) {
 }
 
 async function addParticipant(request, env, roomId) {
-  if (!(await authenticate(request, env, roomId))) {
+  const session = await getSession(request, env, roomId);
+
+  if (!session) {
     return fail("La sesión de esta sala no es válida o ha vencido.", 401);
   }
 
@@ -288,7 +324,8 @@ async function addParticipant(request, env, roomId) {
     ok: true,
     participant: {
       id,
-      ...participant,
+      name: participant.name,
+      workType: participant.workType,
       createdAt
     }
   }, 201);
@@ -312,6 +349,7 @@ async function routeApi(request, env) {
   }
 
   const participantsMatch = path.match(/^\/api\/rooms\/([A-Z2-9]{12})\/participants$/);
+
   if (participantsMatch && request.method === "GET") {
     return listParticipants(request, env, participantsMatch[1]);
   }
