@@ -7,10 +7,11 @@ const WORK_LABELS = {
 };
 
 let roomId = null;
-let roomPin = null;
+let accessRole = null;
 let sessionToken = null;
-let sessionExpiresAt = null;
 let participants = [];
+let participantPin = null;
+let adminPin = null;
 let refreshTimer = null;
 
 function normalizeRoomId(value) {
@@ -31,23 +32,31 @@ function roomLink(id = roomId) {
   return `${location.origin}${location.pathname}#room=${encodeURIComponent(id)}`;
 }
 
-function sessionKey(id) {
-  return `radiologia:session:${id}`;
+function sessionKey(id, role) {
+  return `radiologia:session:${id}:${role}`;
 }
 
-function pinKey(id) {
-  return `radiologia:pin:${id}`;
+function lastRoleKey(id) {
+  return `radiologia:last-role:${id}`;
 }
 
-function saveSession(id, session, pin = null) {
-  sessionStorage.setItem(sessionKey(id), JSON.stringify(session));
-  if (pin) sessionStorage.setItem(pinKey(id), pin);
+function participantPinKey(id) {
+  return `radiologia:participant-pin:${id}`;
 }
 
-function readSession(id) {
+function adminPinKey(id) {
+  return `radiologia:admin-pin:${id}`;
+}
+
+function saveSession(id, session) {
+  sessionStorage.setItem(sessionKey(id, session.role), JSON.stringify(session));
+  sessionStorage.setItem(lastRoleKey(id), session.role);
+}
+
+function readSession(id, role) {
   try {
-    const value = JSON.parse(sessionStorage.getItem(sessionKey(id)) || "null");
-    if (!value?.token || !value?.expiresAt) return null;
+    const value = JSON.parse(sessionStorage.getItem(sessionKey(id, role)) || "null");
+    if (!value?.token || !value?.expiresAt || value?.role !== role) return null;
     if (Date.parse(value.expiresAt) <= Date.now()) return null;
     return value;
   } catch (_) {
@@ -55,9 +64,8 @@ function readSession(id) {
   }
 }
 
-function clearSession(id) {
-  sessionStorage.removeItem(sessionKey(id));
-  sessionStorage.removeItem(pinKey(id));
+function clearSession(id, role) {
+  sessionStorage.removeItem(sessionKey(id, role));
 }
 
 async function api(path, options = {}) {
@@ -97,6 +105,35 @@ function hideError(elementId) {
   $(elementId).classList.add("hidden");
 }
 
+function setRoleUI() {
+  const isAdmin = accessRole === "admin";
+
+  document.querySelectorAll(".admin-only").forEach((el) => {
+    el.classList.toggle("hidden", !isAdmin);
+  });
+
+  document.querySelectorAll(".participant-only").forEach((el) => {
+    el.classList.toggle("hidden", isAdmin);
+  });
+
+  $("roleBadge").textContent = isAdmin ? "Administrador" : "Aspirante";
+  $("roleBadge").classList.toggle("admin", isAdmin);
+
+  if (isAdmin) {
+    $("accessNoteTitle").textContent = "Acceso administrativo.";
+    $("accessNoteText").textContent =
+      "Esta sesión puede consultar los datos completos de los aspirantes y exportar el listado.";
+    $("privacyRoleText").textContent =
+      "Solo una sesión administrativa puede consultar los datos personales y el listado consolidado.";
+  } else {
+    $("accessNoteTitle").textContent = "Acceso de aspirante.";
+    $("accessNoteText").textContent =
+      "Puede enviar su información, pero no puede ver los datos de otras personas registradas.";
+    $("privacyRoleText").textContent =
+      "Su acceso permite enviar información, pero no consultar teléfonos, correos ni otros datos de los demás aspirantes.";
+  }
+}
+
 async function createRoom() {
   const button = $("createRoomBtn");
   const original = button.innerHTML;
@@ -106,12 +143,17 @@ async function createRoom() {
     button.textContent = "Creando hoja…";
 
     const data = await api("/api/rooms", { method: "POST", body: "{}" });
-    roomId = data.room.id;
-    roomPin = data.room.pin;
-    sessionToken = data.session.token;
-    sessionExpiresAt = data.session.expiresAt;
 
-    saveSession(roomId, data.session, roomPin);
+    roomId = data.room.id;
+    participantPin = data.room.participantPin;
+    adminPin = data.room.adminPin;
+    accessRole = "admin";
+    sessionToken = data.session.token;
+
+    saveSession(roomId, data.session);
+    sessionStorage.setItem(participantPinKey(roomId), participantPin);
+    sessionStorage.setItem(adminPinKey(roomId), adminPin);
+
     history.replaceState(null, "", `#room=${roomId}`);
 
     await enterRoom();
@@ -124,23 +166,30 @@ async function createRoom() {
   }
 }
 
-async function accessRoom(id, pin, errorTarget) {
+async function accessRoom(id, pin, role, errorTarget) {
   try {
     hideError(errorTarget);
 
     const data = await api(`/api/rooms/${id}/access`, {
       method: "POST",
-      body: JSON.stringify({ pin })
+      body: JSON.stringify({ pin, role })
     });
 
     roomId = id;
-    roomPin = pin;
+    accessRole = data.session.role;
     sessionToken = data.session.token;
-    sessionExpiresAt = data.session.expiresAt;
 
-    saveSession(id, data.session, pin);
+    saveSession(id, data.session);
+
+    if (accessRole === "admin") {
+      adminPin = pin;
+      sessionStorage.setItem(adminPinKey(id), pin);
+    } else {
+      participantPin = pin;
+      sessionStorage.setItem(participantPinKey(id), pin);
+    }
+
     history.replaceState(null, "", `#room=${id}`);
-
     await enterRoom();
   } catch (error) {
     showError(errorTarget, error.message);
@@ -150,27 +199,44 @@ async function accessRoom(id, pin, errorTarget) {
 async function enterRoom() {
   setView("app");
   $("roomCodeLabel").textContent = formatRoomId(roomId);
-  await loadParticipants();
-  startAutoRefresh();
+  setRoleUI();
+
+  if (accessRole === "admin") {
+    await loadParticipants();
+    startAutoRefresh();
+  } else {
+    stopAutoRefresh();
+  }
 }
 
 async function loadParticipants({ quiet = false } = {}) {
+  if (accessRole !== "admin") return;
+
   try {
     const data = await api(`/api/rooms/${roomId}/participants`);
     participants = data.participants || [];
     renderParticipants();
 
     const time = new Date(data.fetchedAt || Date.now());
-    $("lastUpdated").textContent = `Actualizado ${time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+    $("lastUpdated").textContent =
+      `Actualizado ${time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+
     hideError("listError");
   } catch (error) {
     if (error.status === 401) {
-      clearSession(roomId);
+      clearSession(roomId, accessRole);
       stopAutoRefresh();
       sessionToken = null;
       setView("join");
       $("joinRoomCode").textContent = formatRoomId(roomId);
+      $("joinAccessRole").value = accessRole;
       showError("joinError", "La sesión venció. Introduzca nuevamente la clave.");
+      return;
+    }
+
+    if (error.status === 403) {
+      stopAutoRefresh();
+      showError("listError", "Esta sesión no tiene permiso para consultar el listado.");
       return;
     }
 
@@ -180,8 +246,11 @@ async function loadParticipants({ quiet = false } = {}) {
 
 function startAutoRefresh() {
   stopAutoRefresh();
+
   refreshTimer = setInterval(() => {
-    if (document.visibilityState === "visible") loadParticipants({ quiet: true });
+    if (document.visibilityState === "visible" && accessRole === "admin") {
+      loadParticipants({ quiet: true });
+    }
   }, 10000);
 }
 
@@ -200,6 +269,7 @@ function renderParticipants() {
 
   participants.forEach((item, index) => {
     const tr = document.createElement("tr");
+
     const values = [
       index + 1,
       item.name || "—",
@@ -220,9 +290,20 @@ function renderParticipants() {
 }
 
 function openShareDialog() {
+  participantPin =
+    participantPin || sessionStorage.getItem(participantPinKey(roomId));
+  adminPin = adminPin || sessionStorage.getItem(adminPinKey(roomId));
+
   $("shareRoomCode").value = formatRoomId(roomId);
   $("shareLink").value = roomLink();
-  $("sharePin").value = roomPin || sessionStorage.getItem(pinKey(roomId)) || "Consulte la clave original";
+  $("shareParticipantPin").value =
+    participantPin || "No disponible en esta sesión";
+  $("shareAdminPin").value =
+    adminPin || "No disponible en esta sesión";
+
+  $("copyInviteBtn").disabled = !participantPin;
+  $("copyAdminAccessBtn").disabled = !adminPin;
+
   $("shareDialog").showModal();
 }
 
@@ -230,29 +311,46 @@ $("createRoomBtn").addEventListener("click", createRoom);
 
 $("showExistingBtn").addEventListener("click", () => {
   $("existingRoomPanel").classList.toggle("hidden");
-  if (!$("existingRoomPanel").classList.contains("hidden")) $("existingRoomCode").focus();
+
+  if (!$("existingRoomPanel").classList.contains("hidden")) {
+    $("existingRoomCode").focus();
+  }
 });
 
 $("existingRoomCode").addEventListener("input", (event) => {
   const cursorAtEnd = event.target.selectionStart === event.target.value.length;
   event.target.value = formatRoomId(event.target.value);
-  if (cursorAtEnd) event.target.setSelectionRange(event.target.value.length, event.target.value.length);
+
+  if (cursorAtEnd) {
+    event.target.setSelectionRange(event.target.value.length, event.target.value.length);
+  }
 });
 
 $("openExistingBtn").addEventListener("click", () => {
   const id = normalizeRoomId($("existingRoomCode").value);
   const pin = $("existingRoomPin").value.replace(/\D/g, "");
+  const role = $("existingAccessRole").value;
 
-  if (id.length !== 12) return showError("existingError", "Revise el código de sala.");
-  if (pin.length !== 8) return showError("existingError", "La clave debe contener 8 dígitos.");
+  if (id.length !== 12) {
+    return showError("existingError", "Revise el código de sala.");
+  }
 
-  accessRoom(id, pin, "existingError");
+  if (pin.length !== 8) {
+    return showError("existingError", "La clave debe contener 8 dígitos.");
+  }
+
+  accessRoom(id, pin, role, "existingError");
 });
 
 $("joinBtn").addEventListener("click", () => {
   const pin = $("pinInput").value.replace(/\D/g, "");
-  if (pin.length !== 8) return showError("joinError", "La clave debe contener 8 dígitos.");
-  accessRoom(roomId, pin, "joinError");
+  const role = $("joinAccessRole").value;
+
+  if (pin.length !== 8) {
+    return showError("joinError", "La clave debe contener 8 dígitos.");
+  }
+
+  accessRoom(roomId, pin, role, "joinError");
 });
 
 $("participantForm").addEventListener("submit", async (event) => {
@@ -281,11 +379,8 @@ $("participantForm").addEventListener("submit", async (event) => {
     });
 
     form.reset();
-    $("formStatus").textContent = "Registro guardado correctamente.";
-    $("formStatus").classList.remove("hidden");
-    await loadParticipants();
-
-    setTimeout(() => $("formStatus").classList.add("hidden"), 2600);
+    $("participantFormCard").classList.add("hidden");
+    $("participantSuccess").classList.remove("hidden");
   } catch (error) {
     $("formStatus").textContent = error.message;
     $("formStatus").classList.remove("hidden");
@@ -299,20 +394,48 @@ $("shareBtn").addEventListener("click", openShareDialog);
 $("refreshBtn").addEventListener("click", () => loadParticipants());
 
 $("copyInviteBtn").addEventListener("click", async () => {
-  const pin = roomPin || sessionStorage.getItem(pinKey(roomId)) || "[clave de acceso]";
+  if (!participantPin) return;
+
   const text =
     `Hoja de registro para incorporación a la Sociedad de Radiología\n\n` +
     `Código de sala: ${formatRoomId(roomId)}\n` +
-    `Clave: ${pin}\n` +
+    `Clave de aspirantes: ${participantPin}\n` +
     `Enlace: ${roomLink()}\n\n` +
-    `Conserve el código y la clave para volver a consultar la hoja.`;
+    `Ingrese como Aspirante. Esta clave permite enviar el formulario, pero no ver el listado de otras personas.`;
 
   await navigator.clipboard.writeText(text);
   $("copyInviteBtn").textContent = "Invitación copiada";
-  setTimeout(() => $("copyInviteBtn").textContent = "Copiar invitación", 1500);
+
+  setTimeout(() => {
+    $("copyInviteBtn").textContent = "Copiar invitación para aspirantes";
+  }, 1600);
+});
+
+$("copyAdminAccessBtn").addEventListener("click", async () => {
+  if (!adminPin) return;
+
+  const text =
+    `Acceso administrativo - Sociedad de Radiología\n\n` +
+    `Código de sala: ${formatRoomId(roomId)}\n` +
+    `Clave administrativa: ${adminPin}\n` +
+    `Enlace: ${roomLink()}\n\n` +
+    `Esta clave permite consultar y exportar todos los datos. No compartir con aspirantes.`;
+
+  await navigator.clipboard.writeText(text);
+  $("copyAdminAccessBtn").textContent = "Acceso copiado";
+
+  setTimeout(() => {
+    $("copyAdminAccessBtn").textContent = "Copiar acceso administrativo";
+  }, 1600);
+});
+
+$("closeShareBtn").addEventListener("click", () => {
+  $("shareDialog").close();
 });
 
 $("csvBtn").addEventListener("click", () => {
+  if (accessRole !== "admin") return;
+
   const rows = [
     ["Nombre completo", "Teléfono", "Correo electrónico", "Nro. de CONADEM", "Tipo de trabajo"],
     ...participants.map((item) => [
@@ -325,23 +448,38 @@ $("csvBtn").addEventListener("click", () => {
   ];
 
   const csv = rows
-    .map((row) => row.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(","))
+    .map((row) =>
+      row.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(",")
+    )
     .join("\r\n");
 
-  const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
+  const blob = new Blob(["\ufeff" + csv], {
+    type: "text/csv;charset=utf-8"
+  });
+
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
 
   a.href = url;
   a.download = `registro-radiologia-${formatRoomId(roomId)}.csv`;
   a.click();
+
   URL.revokeObjectURL(url);
 });
 
-$("printBtn").addEventListener("click", () => window.print());
+$("printBtn").addEventListener("click", () => {
+  if (accessRole === "admin") window.print();
+});
 
 document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "visible" && roomId && sessionToken) loadParticipants({ quiet: true });
+  if (
+    document.visibilityState === "visible" &&
+    roomId &&
+    sessionToken &&
+    accessRole === "admin"
+  ) {
+    loadParticipants({ quiet: true });
+  }
 });
 
 async function boot() {
@@ -353,23 +491,24 @@ async function boot() {
   }
 
   roomId = hashRoom;
-  const savedSession = readSession(roomId);
-  roomPin = sessionStorage.getItem(pinKey(roomId));
+
+  const rememberedRole =
+    sessionStorage.getItem(lastRoleKey(roomId)) || "participant";
+  const savedSession = readSession(roomId, rememberedRole);
 
   if (savedSession) {
+    accessRole = savedSession.role;
     sessionToken = savedSession.token;
-    sessionExpiresAt = savedSession.expiresAt;
+    participantPin = sessionStorage.getItem(participantPinKey(roomId));
+    adminPin = sessionStorage.getItem(adminPinKey(roomId));
 
-    try {
-      await enterRoom();
-      return;
-    } catch (_) {
-      clearSession(roomId);
-    }
+    await enterRoom();
+    return;
   }
 
   setView("join");
   $("joinRoomCode").textContent = formatRoomId(roomId);
+  $("joinAccessRole").value = "participant";
 }
 
 boot();
