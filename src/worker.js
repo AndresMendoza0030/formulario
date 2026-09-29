@@ -1,7 +1,7 @@
 const encoder = new TextEncoder();
 
 const SESSION_HOURS = 24;
-const PIN_ITERATIONS = 160000;
+const PIN_ITERATIONS = 100000;
 const WORK_TYPES = new Set(["A", "B", "C"]);
 const ROOM_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
