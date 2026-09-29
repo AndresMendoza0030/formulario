@@ -223,3 +223,124 @@ dialog::backdrop { background: rgba(7,22,36,.62); backdrop-filter: blur(2px); }
   thead { background: white; }
   th { color: var(--navy-950); border-bottom: 2px solid var(--navy-950); }
 }
+
+
+select {
+  width: 100%;
+  border: 1px solid var(--slate-300);
+  border-radius: 8px;
+  padding: 12px 13px;
+  background: white;
+  color: var(--slate-900);
+  outline: none;
+  min-height: 46px;
+}
+
+select:focus {
+  border-color: var(--navy-700);
+  box-shadow: 0 0 0 3px rgba(31,78,120,.1);
+}
+
+.existing-grid-role {
+  grid-template-columns: 1fr 1fr;
+}
+
+.full-row {
+  grid-column: 1 / -1;
+}
+
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.12);
+  color: #e6edf3;
+  font-size: .72rem;
+  font-weight: 800;
+  letter-spacing: .02em;
+}
+
+.role-badge.admin {
+  background: rgba(177,138,61,.2);
+  color: #f1dfb9;
+}
+
+.success-card {
+  padding: 30px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.success-card h2 {
+  margin-bottom: 8px;
+}
+
+.success-card p {
+  margin: 0;
+  color: var(--slate-500);
+  line-height: 1.55;
+}
+
+.success-icon {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #edf7f1;
+  color: var(--success);
+  font-size: 1.45rem;
+  font-weight: 900;
+  flex: 0 0 auto;
+}
+
+.credential-box {
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: 10px;
+  border: 1px solid var(--slate-200);
+  background: #fafbfd;
+}
+
+.credential-box > strong,
+.credential-box > span {
+  display: block;
+}
+
+.credential-box > strong {
+  color: var(--navy-900);
+  font-size: .94rem;
+}
+
+.credential-box > span {
+  margin-top: 4px;
+  color: var(--slate-500);
+  font-size: .82rem;
+  line-height: 1.45;
+}
+
+.admin-credential {
+  border-left: 3px solid var(--gold);
+  background: #fcfaf5;
+}
+
+.participant-credential {
+  border-left: 3px solid var(--navy-700);
+}
+
+@media (max-width: 650px) {
+  .existing-grid-role {
+    grid-template-columns: 1fr;
+  }
+
+  .full-row {
+    grid-column: auto;
+  }
+
+  .success-card {
+    align-items: flex-start;
+    padding: 22px 20px;
+  }
+}
