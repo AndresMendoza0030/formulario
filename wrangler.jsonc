@@ -12,7 +12,7 @@
     {
       "binding": "DB",
       "database_name": "formulario-radiologia-db",
-      "database_id": "REEMPLAZAR_CON_DATABASE_ID"
+      "database_id": "37b252d1-efa9-4520-a198-4344a3dae05a"
     }
   ],
   "observability": {
