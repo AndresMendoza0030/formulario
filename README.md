@@ -1,50 +1,73 @@
 # Hoja de registro para incorporación a la Sociedad de Radiología
 
-Aplicación con almacenamiento persistente en Cloudflare D1 y API en Cloudflare Workers.
+Aplicación con Cloudflare Workers + D1.
 
-## Roles de acceso
+## Modelo de acceso
 
-Cada hoja tiene dos claves distintas:
+### Administrador
+El administrador usa una cuenta real con:
 
-- **Clave de aspirantes:** permite ingresar y enviar el formulario. No permite consultar el listado completo.
-- **Clave administrativa:** permite ver teléfonos, correos, CONADEM, exportar CSV e imprimir/PDF.
+- nombre
+- correo electrónico
+- contraseña
 
-La separación también se aplica en el backend: una sesión de aspirante recibe HTTP 403 si intenta consultar el listado completo.
+La sesión administrativa se conserva mediante una cookie HttpOnly durante 30 días. Puede cerrar el navegador y volver después, o iniciar sesión desde otro dispositivo.
 
-## Campos
+Cada hoja creada queda asociada a la cuenta administrativa mediante `owner_user_id`.
 
-- Nombre completo
-- Teléfono
-- Correo electrónico
-- Nro. de CONADEM
-- Tipo de trabajo:
-  - A - Trabajo de investigación
-  - B - Monografía
-  - C - Caso interesante
+Desde el panel puede:
+
+- ver todas sus hojas
+- crear nuevas hojas
+- ver los participantes de cada hoja
+- consultar teléfono, correo y CONADEM
+- exportar CSV
+- imprimir/PDF
+- copiar la invitación para aspirantes
+- cambiar la clave de aspirantes
+
+### Aspirante
+El aspirante no necesita cuenta.
+
+Usa:
+
+- enlace o código de sala
+- clave de aspirante
+
+Puede enviar el formulario, pero no existe ningún endpoint que le permita descargar el listado completo.
 
 ## Seguridad
 
-- Los PIN se almacenan como PBKDF2-SHA256 con 100,000 iteraciones y salt.
-- Los tokens de sesión se almacenan como SHA-256.
-- Las sesiones expiran a las 24 horas.
-- El listado completo solo puede consultarse con una sesión de rol `admin`.
-- Las consultas a D1 utilizan parámetros.
+- Contraseñas administrativas: PBKDF2-SHA256, 100,000 iteraciones y salt individual.
+- Sesiones administrativas: token aleatorio; solo su SHA-256 se almacena en D1.
+- La cookie administrativa es HttpOnly, SameSite=Strict y Secure en HTTPS.
+- Sesión administrativa: 30 días.
+- Sesión de aspirante: 24 horas.
+- Las consultas a D1 usan parámetros.
+- El listado administrativo exige que la hoja pertenezca al usuario autenticado.
 
-## Migración desde la versión anterior
+## Migración de la base existente
 
-Si la base D1 ya fue creada con el esquema anterior, ejecute una sola vez:
+Si la D1 ya existe, ejecute una sola vez:
 
 ```bash
-npm run db:migrate-roles
+npm run db:migrate-admin-accounts
 ```
 
-La migración agrega:
+Esto crea:
 
-- `rooms.admin_pin_salt`
-- `rooms.admin_pin_hash`
-- `room_sessions.role`
+- `admin_users`
+- `admin_sessions`
 
-Las salas creadas antes de esta migración no tienen una clave administrativa histórica. Las nuevas salas creadas después de migrar sí generan ambas claves correctamente.
+y agrega a `rooms`:
+
+- `owner_user_id`
+- `title`
+- `participant_pin`
+
+Las hojas nuevas quedarán asociadas automáticamente a la cuenta administrativa que las crea.
+
+Las hojas antiguas permanecen en D1, pero no aparecen automáticamente en el panel porque fueron creadas antes de existir propietarios administrativos.
 
 ## Estructura
 
@@ -52,7 +75,7 @@ Las salas creadas antes de esta migración no tienen una clave administrativa hi
 public/
 src/worker.js
 schema.sql
-migrations/0002_access_roles.sql
+migrations/0003_admin_accounts.sql
 wrangler.jsonc
 package.json
 ```
