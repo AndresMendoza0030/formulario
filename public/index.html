@@ -36,8 +36,8 @@
           <div class="eyebrow">Hoja de registro</div>
           <h1>Incorporación a la Sociedad de Radiología</h1>
           <p class="lead">
-            Registro privado para aspirantes. Cada persona puede enviar su información,
-            mientras que el listado completo queda reservado para la administración de la hoja.
+            Los aspirantes completan su registro mediante un acceso de invitado.
+            La administración dispone de una cuenta privada para crear y consultar todas sus hojas desde cualquier dispositivo.
           </p>
 
           <div class="privacy-note">
@@ -45,43 +45,30 @@
               <svg viewBox="0 0 24 24"><path d="M7 11V8a5 5 0 0 1 10 0v3"></path><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="m9.5 16 1.6 1.6 3.5-3.7"></path></svg>
             </div>
             <div>
-              <strong>Dos niveles de acceso</strong>
-              <span>Los aspirantes registran sus datos. Solo el administrador puede consultar, exportar o imprimir el listado completo.</span>
+              <strong>Accesos separados</strong>
+              <span>El aspirante solo envía su formulario. El administrador inicia sesión para ver y gestionar los registros.</span>
             </div>
           </div>
 
           <div class="hero-actions">
-            <button id="createRoomBtn" class="primary large">
-              <svg class="button-icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg>
-              Crear nueva hoja
-            </button>
-            <button id="showExistingBtn" class="secondary large">Abrir una hoja existente</button>
+            <button id="showAdminLoginBtn" class="primary large">Acceso administrativo</button>
+            <button id="showParticipantAccessBtn" class="secondary large">Ingresar como aspirante</button>
           </div>
 
-          <div id="existingRoomPanel" class="existing-room-panel hidden">
-            <div class="existing-grid existing-grid-role">
+          <div id="participantManualPanel" class="existing-room-panel hidden">
+            <div class="existing-grid">
               <label class="field-label">
                 Código de sala
-                <input id="existingRoomCode" autocomplete="off" maxlength="14" placeholder="ABCD-EFGH-JKLM" />
+                <input id="manualRoomCode" maxlength="14" autocomplete="off" placeholder="ABCD-EFGH-JKLM" />
               </label>
-
               <label class="field-label">
-                Tipo de acceso
-                <select id="existingAccessRole">
-                  <option value="participant">Aspirante</option>
-                  <option value="admin">Administrador</option>
-                </select>
-              </label>
-
-              <label class="field-label full-row">
-                Clave de acceso
-                <input id="existingRoomPin" inputmode="numeric" autocomplete="off" maxlength="8" placeholder="00000000" />
+                Clave de aspirante
+                <input id="manualRoomPin" maxlength="8" inputmode="numeric" autocomplete="off" placeholder="00000000" />
               </label>
             </div>
-
             <div class="existing-actions">
-              <button id="openExistingBtn" class="primary">Abrir hoja</button>
-              <p id="existingError" class="error hidden"></p>
+              <button id="manualParticipantEnterBtn" class="primary">Abrir formulario</button>
+              <p id="manualParticipantError" class="error hidden"></p>
             </div>
           </div>
         </div>
@@ -99,191 +86,230 @@
       </div>
     </section>
 
-    <section id="joinCard" class="institutional-panel join-panel hidden">
+    <section id="adminAuth" class="institutional-panel auth-panel hidden">
       <div class="brand-row compact">
         <div class="brand-seal small" aria-hidden="true"><span>SR</span></div>
         <div>
-          <div class="brand-name">Sociedad de Radiología</div>
-          <div class="brand-subtitle">Hoja de registro para incorporación</div>
+          <div class="brand-name">Administración</div>
+          <div class="brand-subtitle">Sociedad de Radiología</div>
         </div>
       </div>
 
-      <div class="form-heading">
-        <div class="eyebrow">Acceso privado</div>
-        <h1>Ingresar a la hoja</h1>
-        <p class="lead">Sala <strong id="joinRoomCode"></strong>.</p>
+      <div id="loginBox">
+        <div class="eyebrow">Cuenta administrativa</div>
+        <h1>Iniciar sesión</h1>
+        <p class="lead">Acceda a sus hojas desde este o cualquier otro dispositivo.</p>
+
+        <form id="adminLoginForm">
+          <label class="field-label">Correo electrónico<input name="email" type="email" required autocomplete="email" /></label>
+          <label class="field-label">Contraseña<input name="password" type="password" required autocomplete="current-password" /></label>
+          <p id="adminLoginError" class="error hidden"></p>
+          <button type="submit" class="primary full-button">Iniciar sesión</button>
+        </form>
+
+        <p class="auth-switch">¿Primera vez? <button id="showRegisterBtn" type="button" class="link-button">Crear cuenta administrativa</button></p>
       </div>
 
-      <label class="field-label">
-        Ingresar como
-        <select id="joinAccessRole">
-          <option value="participant">Aspirante</option>
-          <option value="admin">Administrador</option>
-        </select>
-      </label>
+      <div id="registerBox" class="hidden">
+        <div class="eyebrow">Nueva cuenta</div>
+        <h1>Crear cuenta administrativa</h1>
+        <p class="lead">Esta cuenta será la propietaria de las hojas que cree.</p>
 
-      <label class="field-label">
-        Clave de acceso
-        <input id="pinInput" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="00000000" />
-      </label>
+        <form id="adminRegisterForm">
+          <label class="field-label">Nombre<input name="name" required maxlength="100" autocomplete="name" /></label>
+          <label class="field-label">Correo electrónico<input name="email" type="email" required maxlength="160" autocomplete="email" /></label>
+          <label class="field-label">Contraseña<input name="password" type="password" required minlength="8" maxlength="128" autocomplete="new-password" /></label>
+          <p class="field-help">Mínimo 8 caracteres.</p>
+          <p id="adminRegisterError" class="error hidden"></p>
+          <button type="submit" class="primary full-button">Crear cuenta</button>
+        </form>
 
-      <button id="joinBtn" class="primary">Ingresar</button>
-      <p id="joinError" class="error hidden"></p>
+        <p class="auth-switch">¿Ya tiene cuenta? <button id="showLoginBtn" type="button" class="link-button">Iniciar sesión</button></p>
+      </div>
+
+      <button id="backFromAuthBtn" class="text-button">← Volver</button>
     </section>
 
-    <section id="app" class="hidden">
-      <header class="institutional-header">
-        <div class="brand-row">
-          <div class="brand-seal" aria-hidden="true"><span>SR</span></div>
-          <div>
-            <div class="brand-name">Sociedad de Radiología</div>
-            <div class="brand-subtitle">Proceso de incorporación</div>
+    <section id="adminDashboard" class="hidden">
+      <header class="institutional-header dashboard-header">
+        <div>
+          <div class="eyebrow light">Panel administrativo</div>
+          <h1>Mis hojas de registro</h1>
+          <p><span id="adminUserName"></span> · <span id="adminUserEmail"></span></p>
+        </div>
+        <div class="top-actions dashboard-actions">
+          <button id="newRoomBtn" class="ghost-light">Nueva hoja</button>
+          <button id="logoutBtn" class="ghost-light">Cerrar sesión</button>
+        </div>
+      </header>
+
+      <section id="newRoomPanel" class="institutional-panel create-room-panel hidden">
+        <div>
+          <div class="eyebrow">Nueva hoja</div>
+          <h2>Crear hoja de registro</h2>
+        </div>
+        <div class="create-room-row">
+          <label class="field-label grow">Nombre de la hoja<input id="newRoomTitle" maxlength="140" value="Incorporación a la Sociedad de Radiología" /></label>
+          <button id="confirmCreateRoomBtn" class="primary">Crear hoja</button>
+        </div>
+        <p id="createRoomError" class="error hidden"></p>
+      </section>
+
+      <section class="institutional-panel rooms-panel">
+        <div class="section-heading">
+          <div class="section-number">01</div>
+          <div class="grow">
+            <div class="eyebrow">Administración</div>
+            <h2>Hojas disponibles</h2>
+            <p>Puede abrir cualquiera de sus hojas sin recordar códigos ni claves administrativas.</p>
           </div>
+          <button id="reloadRoomsBtn" class="secondary">Actualizar</button>
         </div>
 
-        <div class="header-title">
-          <div class="eyebrow light">Hoja de registro</div>
-          <h1>Incorporación a la Sociedad de Radiología</h1>
-          <p>
-            Código de sala: <strong id="roomCodeLabel"></strong>
-            · <span id="roleBadge" class="role-badge"></span>
-            <span id="adminUpdateMeta" class="admin-only">· <span id="lastUpdated">Cargando listado…</span></span>
-          </p>
+        <div id="roomsEmpty" class="empty">
+          <div class="empty-mark">SR</div>
+          <strong>Aún no ha creado hojas</strong>
+          <span>Presione “Nueva hoja” para comenzar.</span>
         </div>
 
-        <div class="top-actions admin-only">
-          <button id="shareBtn" class="ghost-light">Compartir accesos</button>
-          <button id="refreshBtn" class="ghost-light">Actualizar listado</button>
+        <div id="roomsGrid" class="rooms-grid"></div>
+      </section>
+    </section>
+
+    <section id="adminRoom" class="hidden">
+      <header class="institutional-header">
+        <div>
+          <div class="eyebrow light">Administración de hoja</div>
+          <h1 id="adminRoomTitle"></h1>
+          <p>Código: <strong id="adminRoomCode"></strong> · <span id="adminRoomUpdated"></span></p>
+        </div>
+        <div class="top-actions">
+          <button id="backToDashboardBtn" class="ghost-light">Mis hojas</button>
+          <button id="shareParticipantBtn" class="ghost-light">Compartir con aspirantes</button>
         </div>
       </header>
 
       <section class="server-note institutional-panel">
         <div class="server-note-icon">
-          <svg viewBox="0 0 24 24"><path d="M5 6.5C5 5.1 8.1 4 12 4s7 1.1 7 2.5S15.9 9 12 9 5 7.9 5 6.5Z"></path><path d="M5 6.5v5C5 12.9 8.1 14 12 14s7-1.1 7-2.5v-5M5 11.5v5C5 17.9 8.1 19 12 19s7-1.1 7-2.5v-5"></path></svg>
+          <svg viewBox="0 0 24 24"><path d="M7 11V8a5 5 0 0 1 10 0v3"></path><rect x="5" y="11" width="14" height="10" rx="2"></rect></svg>
         </div>
         <div>
-          <strong id="accessNoteTitle"></strong>
-          <span id="accessNoteText"></span>
+          <strong>Acceso administrativo autenticado.</strong>
+          <span>Solo su cuenta puede consultar los datos completos de esta hoja.</span>
         </div>
       </section>
 
-      <section class="workspace">
-        <article id="participantFormCard" class="institutional-panel form-card participant-only">
-          <div class="section-heading">
-            <div class="section-number">01</div>
-            <div>
-              <div class="eyebrow">Datos del aspirante</div>
-              <h2>Información de registro</h2>
-              <p>Complete los campos y presione Guardar registro.</p>
-            </div>
+      <section class="institutional-panel list-card admin-list-panel">
+        <div class="section-heading list-heading">
+          <div class="section-number">01</div>
+          <div class="grow">
+            <div class="eyebrow">Registro consolidado</div>
+            <h2>Aspirantes registrados</h2>
+            <p><span id="entryCount">0</span> registro(s).</p>
           </div>
+          <div class="list-actions">
+            <button id="refreshParticipantsBtn" class="secondary">Actualizar</button>
+            <button id="csvBtn" class="secondary">Exportar CSV</button>
+            <button id="printBtn" class="secondary">Imprimir / PDF</button>
+          </div>
+        </div>
 
-          <form id="participantForm">
-            <div class="form-grid">
-              <label class="field-label full">
-                Nombre completo
-                <input name="name" required maxlength="120" autocomplete="name" placeholder="Nombre y apellidos" />
-              </label>
+        <div id="adminRoomError" class="inline-error hidden"></div>
 
-              <label class="field-label">
-                Teléfono
-                <input name="phone" required maxlength="40" autocomplete="tel" inputmode="tel" placeholder="Número de contacto" />
-              </label>
+        <div id="emptyState" class="empty">
+          <div class="empty-mark">SR</div>
+          <strong>Aún no hay aspirantes registrados</strong>
+          <span>Los registros aparecerán aquí conforme sean enviados.</span>
+        </div>
 
-              <label class="field-label">
-                Correo electrónico
-                <input name="email" required maxlength="120" autocomplete="email" type="email" placeholder="correo@ejemplo.com" />
-              </label>
+        <div class="table-wrap">
+          <table id="participantsTable" class="hidden">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Nombre completo</th>
+                <th>Teléfono</th>
+                <th>Correo electrónico</th>
+                <th>Nro. CONADEM</th>
+                <th>Tipo de trabajo</th>
+              </tr>
+            </thead>
+            <tbody id="participantsBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </section>
 
-              <label class="field-label full">
-                Nro. de CONADEM
-                <input name="conadem" required maxlength="60" placeholder="Ingrese su número de CONADEM" />
-              </label>
-            </div>
+    <section id="participantJoin" class="institutional-panel join-panel hidden">
+      <div class="brand-row compact">
+        <div class="brand-seal small" aria-hidden="true"><span>SR</span></div>
+        <div>
+          <div class="brand-name">Sociedad de Radiología</div>
+          <div class="brand-subtitle">Registro de aspirante</div>
+        </div>
+      </div>
 
-            <fieldset class="work-type">
-              <legend>Tipo de trabajo que presentará el aspirante</legend>
-              <div class="choice-grid">
-                <label class="choice-card">
-                  <input type="radio" name="workType" value="A" required />
-                  <span class="choice-letter">A</span>
-                  <span class="choice-text"><strong>Trabajo de investigación</strong><small>Presentación de investigación científica.</small></span>
-                </label>
+      <div class="form-heading">
+        <div class="eyebrow">Acceso de aspirante</div>
+        <h1>Ingresar al formulario</h1>
+        <p class="lead">Sala <strong id="participantJoinCode"></strong>.</p>
+      </div>
 
-                <label class="choice-card">
-                  <input type="radio" name="workType" value="B" required />
-                  <span class="choice-letter">B</span>
-                  <span class="choice-text"><strong>Monografía</strong><small>Revisión y desarrollo de un tema específico.</small></span>
-                </label>
+      <label class="field-label">Clave de aspirante<input id="participantJoinPin" maxlength="8" inputmode="numeric" autocomplete="one-time-code" placeholder="00000000" /></label>
+      <button id="participantJoinBtn" class="primary">Ingresar</button>
+      <p id="participantJoinError" class="error hidden"></p>
+    </section>
 
-                <label class="choice-card">
-                  <input type="radio" name="workType" value="C" required />
-                  <span class="choice-letter">C</span>
-                  <span class="choice-text"><strong>Caso interesante</strong><small>Presentación estructurada de un caso de interés.</small></span>
-                </label>
-              </div>
-            </fieldset>
+    <section id="participantApp" class="hidden">
+      <header class="institutional-header participant-header">
+        <div>
+          <div class="eyebrow light">Registro de aspirante</div>
+          <h1 id="participantRoomTitle">Incorporación a la Sociedad de Radiología</h1>
+          <p>Código de sala: <strong id="participantRoomCode"></strong></p>
+        </div>
+      </header>
 
-            <div class="form-footer">
-              <p id="formStatus" class="status hidden"></p>
-              <button id="submitParticipantBtn" type="submit" class="primary">Guardar registro</button>
-            </div>
-          </form>
-        </article>
-
-        <article id="participantSuccess" class="institutional-panel success-card participant-only hidden">
-          <div class="success-icon">✓</div>
+      <section class="institutional-panel form-card">
+        <div class="section-heading">
+          <div class="section-number">01</div>
           <div>
-            <div class="eyebrow">Registro recibido</div>
-            <h2>Su información fue guardada correctamente</h2>
-            <p>El listado completo es privado y solamente puede ser consultado por la administración de esta hoja.</p>
+            <div class="eyebrow">Datos del aspirante</div>
+            <h2>Información de registro</h2>
+            <p>Sus datos serán visibles únicamente para la administración de esta hoja.</p>
           </div>
-        </article>
+        </div>
 
-        <article class="institutional-panel list-card admin-only">
-          <div class="section-heading list-heading">
-            <div class="section-number">01</div>
-            <div class="grow">
-              <div class="eyebrow">Administración</div>
-              <h2>Aspirantes registrados</h2>
-              <p><span id="entryCount">0</span> registro(s) en esta hoja.</p>
+        <form id="participantForm">
+          <div class="form-grid">
+            <label class="field-label full">Nombre completo<input name="name" required maxlength="120" autocomplete="name" /></label>
+            <label class="field-label">Teléfono<input name="phone" required maxlength="40" autocomplete="tel" inputmode="tel" /></label>
+            <label class="field-label">Correo electrónico<input name="email" required maxlength="120" autocomplete="email" type="email" /></label>
+            <label class="field-label full">Nro. de CONADEM<input name="conadem" required maxlength="60" /></label>
+          </div>
+
+          <fieldset class="work-type">
+            <legend>Tipo de trabajo que presentará</legend>
+            <div class="choice-grid">
+              <label class="choice-card"><input type="radio" name="workType" value="A" required /><span class="choice-letter">A</span><span class="choice-text"><strong>Trabajo de investigación</strong><small>Presentación de investigación científica.</small></span></label>
+              <label class="choice-card"><input type="radio" name="workType" value="B" required /><span class="choice-letter">B</span><span class="choice-text"><strong>Monografía</strong><small>Revisión y desarrollo de un tema específico.</small></span></label>
+              <label class="choice-card"><input type="radio" name="workType" value="C" required /><span class="choice-letter">C</span><span class="choice-text"><strong>Caso interesante</strong><small>Presentación estructurada de un caso de interés.</small></span></label>
             </div>
+          </fieldset>
 
-            <div class="list-actions">
-              <button id="csvBtn" class="secondary">Exportar CSV</button>
-              <button id="printBtn" class="secondary">Imprimir / PDF</button>
-            </div>
+          <div class="form-footer">
+            <p id="participantFormError" class="error hidden"></p>
+            <button id="participantSubmitBtn" type="submit" class="primary">Guardar registro</button>
           </div>
-
-          <div id="listError" class="inline-error hidden"></div>
-
-          <div id="emptyState" class="empty">
-            <div class="empty-mark">SR</div>
-            <strong>Aún no hay aspirantes registrados</strong>
-            <span>Los registros aparecerán aquí después de guardarse.</span>
-          </div>
-
-          <div class="table-wrap">
-            <table id="participantsTable" class="hidden">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Nombre completo</th>
-                  <th>Teléfono</th>
-                  <th>Correo electrónico</th>
-                  <th>Nro. CONADEM</th>
-                  <th>Tipo de trabajo</th>
-                </tr>
-              </thead>
-              <tbody id="participantsBody"></tbody>
-            </table>
-          </div>
-        </article>
+        </form>
       </section>
 
-      <section class="confidentiality-note">
-        <strong>Privacidad:</strong>
-        <span id="privacyRoleText"></span>
+      <section id="participantSuccess" class="institutional-panel success-card hidden">
+        <div class="success-icon">✓</div>
+        <div>
+          <div class="eyebrow">Registro recibido</div>
+          <h2>Su información fue guardada correctamente</h2>
+          <p>El listado completo es privado y solo puede ser consultado por la administración.</p>
+        </div>
       </section>
     </section>
   </main>
@@ -293,34 +319,20 @@
       <div class="dialog-brand">
         <div class="brand-seal small" aria-hidden="true"><span>SR</span></div>
         <div>
-          <div class="eyebrow">Credenciales de la hoja</div>
-          <h2>Compartir accesos</h2>
+          <div class="eyebrow">Invitación de aspirantes</div>
+          <h2>Compartir formulario</h2>
         </div>
       </div>
 
-      <p class="dialog-intro">
-        Comparta con los aspirantes únicamente la clave de aspirantes. La clave administrativa permite ver todos los datos personales.
-      </p>
-
+      <p class="dialog-intro">Esta clave solo permite llenar el formulario. No permite consultar otros registros.</p>
       <label class="field-label">Código de sala<input id="shareRoomCode" readonly /></label>
+      <label class="field-label">Clave de aspirante<input id="shareParticipantPin" readonly /></label>
       <label class="field-label">Enlace<input id="shareLink" readonly /></label>
 
-      <div class="credential-box participant-credential">
-        <strong>Acceso para aspirantes</strong>
-        <span>Permite llenar y enviar el formulario. No permite ver el listado.</span>
-        <label class="field-label">Clave de aspirantes<input id="shareParticipantPin" readonly /></label>
-        <button type="button" id="copyInviteBtn" class="primary">Copiar invitación para aspirantes</button>
-      </div>
-
-      <div class="credential-box admin-credential">
-        <strong>Acceso administrativo</strong>
-        <span>No comparta esta clave con los aspirantes. Permite consultar teléfonos, correos y exportar el listado.</span>
-        <label class="field-label">Clave administrativa<input id="shareAdminPin" readonly /></label>
-        <button type="button" id="copyAdminAccessBtn" class="secondary">Copiar acceso administrativo</button>
-      </div>
-
       <div class="dialog-actions">
-        <button type="button" id="closeShareBtn" class="secondary">Cerrar</button>
+        <button id="copyParticipantInviteBtn" class="primary">Copiar invitación</button>
+        <button id="resetParticipantPinBtn" class="secondary">Cambiar clave</button>
+        <button id="closeShareDialogBtn" class="secondary">Cerrar</button>
       </div>
     </div>
   </dialog>
