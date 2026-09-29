@@ -89,3 +89,19 @@ También es posible volver mediante el enlace compartido.
 ## Copia administrativa de D1
 
 Si en algún momento se desea una copia externa de la base completa, Wrangler permite exportar D1 a SQL desde la cuenta de Cloudflare.
+
+
+## Separación de aspirante y administrador
+
+Si la base D1 ya existía antes de agregar roles, ejecute una sola vez:
+
+```bash
+npm run db:migrate-roles
+```
+
+Después vuelva a desplegar el Worker.
+
+Las nuevas salas generan dos claves:
+
+- clave de aspirantes
+- clave administrativa
