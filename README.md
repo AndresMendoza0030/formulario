@@ -8,7 +8,7 @@ La versión P2P fue retirada. Ahora:
 
 - Las salas se crean en el servidor.
 - Cada sala tiene un código corto de 12 caracteres y una clave de 8 dígitos.
-- El PIN se guarda en D1 como una derivación PBKDF2-SHA256 con salt, nunca en texto plano.
+- El PIN se guarda en D1 como una derivación PBKDF2-SHA256 (100,000 iteraciones) con salt, nunca en texto plano.
 - Al ingresar correctamente se emite una sesión temporal de 24 horas.
 - Los participantes se guardan permanentemente en D1.
 - Cerrar el navegador, apagar el equipo o desconectarse no elimina la información.
