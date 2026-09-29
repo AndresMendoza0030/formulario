@@ -1,0 +1,15 @@
+{
+  "name": "formulario-radiologia",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:local": "wrangler d1 execute formulario-radiologia-db --local --file=./schema.sql",
+    "db:remote": "wrangler d1 execute formulario-radiologia-db --remote --file=./schema.sql"
+  },
+  "devDependencies": {
+    "wrangler": "^4.102.0"
+  }
+}
