@@ -77,7 +77,7 @@ function mergeEntries(incoming = []) {
 }
 
 function renderEntries() {
-  const items = [...entries.values()].sort((a,b) => Number(a.createdAt) - Number(b.createdAt));
+  const items = [...entries.values()].sort((a, b) => Number(a.createdAt) - Number(b.createdAt));
   $('entryCount').textContent = items.length;
   $('emptyState').classList.toggle('hidden', items.length > 0);
   $('participantsTable').classList.toggle('hidden', items.length === 0);
@@ -85,12 +85,21 @@ function renderEntries() {
 
   items.forEach((item, index) => {
     const tr = document.createElement('tr');
-    const values = [index + 1, item.name, item.phone || '—', item.organization || '—', item.notes || '—'];
-    values.forEach(value => {
+    const values = [
+      index + 1,
+      item.name || '—',
+      item.phone || '—',
+      item.email || '—',
+      item.conadem || '—',
+      item.workType || '—'
+    ];
+
+    values.forEach((value) => {
       const td = document.createElement('td');
       td.textContent = value;
       tr.appendChild(td);
     });
+
     $('participantsBody').appendChild(tr);
   });
 }
@@ -112,6 +121,7 @@ async function connect(id, pin) {
   syncAction.onMessage = (data) => {
     if (Array.isArray(data)) mergeEntries(data);
   };
+
   entryAction.onMessage = (data) => {
     if (data && data.id) mergeEntries([data]);
   };
@@ -121,6 +131,7 @@ async function connect(id, pin) {
     updatePeers();
     syncAction.send([...entries.values()], { target: peerId }).catch(() => {});
   };
+
   room.onPeerLeave = (peerId) => {
     peers.delete(peerId);
     updatePeers();
@@ -130,6 +141,7 @@ async function connect(id, pin) {
   joinCard.classList.add('hidden');
   app.classList.remove('hidden');
   updatePeers();
+
   $('shareLink').value = roomLink();
   $('sharePin').value = roomPin;
 }
@@ -144,28 +156,37 @@ $('createRoomBtn').addEventListener('click', async () => {
 
 $('joinBtn').addEventListener('click', async () => {
   const pin = $('pinInput').value.replace(/\D/g, '');
+
   if (pin.length !== 8) {
-    $('joinError').textContent = 'La clave debe tener 8 dígitos.';
+    $('joinError').textContent = 'La clave debe contener 8 dígitos.';
     $('joinError').classList.remove('hidden');
     return;
   }
+
   $('joinError').classList.add('hidden');
   await connect(roomFromHash(), pin);
 });
 
 $('participantForm').addEventListener('submit', async (event) => {
   event.preventDefault();
+
   const data = new FormData(event.currentTarget);
   const name = String(data.get('name') || '').trim();
-  if (!name) return;
+  const phone = String(data.get('phone') || '').trim();
+  const email = String(data.get('email') || '').trim();
+  const conadem = String(data.get('conadem') || '').trim();
+  const workType = String(data.get('workType') || '').trim();
+
+  if (!name || !phone || !email || !conadem || !workType) return;
 
   const now = Date.now();
   const entry = {
     id: `${now}-${randomHex(6)}`,
     name,
-    phone: String(data.get('phone') || '').trim(),
-    organization: String(data.get('organization') || '').trim(),
-    notes: String(data.get('notes') || '').trim(),
+    phone,
+    email,
+    conadem,
+    workType,
     createdAt: now,
     updatedAt: now
   };
@@ -173,12 +194,14 @@ $('participantForm').addEventListener('submit', async (event) => {
   mergeEntries([entry]);
   entryAction?.send(entry).catch(() => {});
   event.currentTarget.reset();
-  $('formStatus').textContent = 'Te agregaste al listado.';
+
+  $('formStatus').textContent = 'Registro incorporado correctamente.';
   $('formStatus').classList.remove('hidden');
-  setTimeout(() => $('formStatus').classList.add('hidden'), 2200);
+  setTimeout(() => $('formStatus').classList.add('hidden'), 2600);
 });
 
 $('shareBtn').addEventListener('click', () => shareDialog.showModal());
+
 $('copyLinkBtn').addEventListener('click', async () => {
   await navigator.clipboard.writeText(roomLink());
   $('copyLinkBtn').textContent = 'Enlace copiado';
@@ -186,24 +209,39 @@ $('copyLinkBtn').addEventListener('click', async () => {
 });
 
 $('copyInviteBtn').addEventListener('click', async () => {
-  const text = `Sala privada de registro\n${roomLink()}\nClave: ${roomPin}`;
+  const text =
+    `Hoja de registro para incorporación a la Sociedad de Radiología\n` +
+    `${roomLink()}\n` +
+    `Clave de acceso: ${roomPin}`;
+
   await navigator.clipboard.writeText(text);
   $('copyInviteBtn').textContent = 'Invitación copiada';
   setTimeout(() => $('copyInviteBtn').textContent = 'Copiar invitación', 1600);
 });
 
 $('csvBtn').addEventListener('click', () => {
-  const items = [...entries.values()].sort((a,b) => Number(a.createdAt) - Number(b.createdAt));
+  const items = [...entries.values()].sort((a, b) => Number(a.createdAt) - Number(b.createdAt));
+
   const rows = [
-    ['Nombre', 'Teléfono', 'Institución / cargo', 'Observaciones'],
-    ...items.map(x => [x.name, x.phone || '', x.organization || '', x.notes || ''])
+    ['Nombre completo', 'Teléfono', 'Correo electrónico', 'Nro. de CONADEM', 'Tipo de trabajo'],
+    ...items.map((x) => [
+      x.name || '',
+      x.phone || '',
+      x.email || '',
+      x.conadem || '',
+      x.workType || ''
+    ])
   ];
-  const csv = rows.map(row => row.map(v => `"${String(v).replaceAll('"','""')}"`).join(',')).join('\r\n');
+
+  const csv = rows
+    .map((row) => row.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(','))
+    .join('\r\n');
+
   const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `participantes-${roomId.slice(0,8)}.csv`;
+  a.download = `registro-radiologia-${roomId.slice(0, 8)}.csv`;
   a.click();
   URL.revokeObjectURL(url);
 });
@@ -211,9 +249,14 @@ $('csvBtn').addEventListener('click', () => {
 $('printBtn').addEventListener('click', () => window.print());
 
 const initialRoom = roomFromHash();
+
 if (initialRoom) {
   landing.classList.add('hidden');
   const remembered = localStorage.getItem(`sala-privada:${initialRoom}:pin`);
-  if (remembered) connect(initialRoom, remembered);
-  else joinCard.classList.remove('hidden');
+
+  if (remembered) {
+    connect(initialRoom, remembered);
+  } else {
+    joinCard.classList.remove('hidden');
+  }
 }
