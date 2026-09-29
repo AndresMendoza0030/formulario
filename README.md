@@ -1,8 +1,22 @@
 # Hoja de registro para incorporación a la Sociedad de Radiología
 
-Aplicación web estática para registrar aspirantes dentro de una sala privada compartida.
+Versión tradicional con almacenamiento persistente en **Cloudflare D1** y API en **Cloudflare Workers**.
 
-## Campos de registro
+## Qué cambió
+
+La versión P2P fue retirada. Ahora:
+
+- Las salas se crean en el servidor.
+- Cada sala tiene un código corto de 12 caracteres y una clave de 8 dígitos.
+- El PIN se guarda en D1 como una derivación PBKDF2-SHA256 con salt, nunca en texto plano.
+- Al ingresar correctamente se emite una sesión temporal de 24 horas.
+- Los participantes se guardan permanentemente en D1.
+- Cerrar el navegador, apagar el equipo o desconectarse no elimina la información.
+- Si se pierde el enlace, la hoja puede abrirse desde la página principal usando **código de sala + clave**.
+- El listado se actualiza automáticamente cada 10 segundos mientras la página está visible.
+- Se mantiene exportación CSV e impresión/PDF.
+
+## Campos
 
 - Nombre completo
 - Teléfono
@@ -13,38 +27,62 @@ Aplicación web estática para registrar aspirantes dentro de una sala privada c
   - B - Monografía
   - C - Caso interesante
 
-## Funcionamiento
+## Arquitectura
 
-- Se crea una hoja privada con enlace y clave de 8 dígitos.
-- Los aspirantes autorizados pueden ingresar, completar sus datos y ver el listado común.
-- La información se sincroniza entre los navegadores participantes mediante WebRTC.
-- El listado puede exportarse a CSV o imprimirse/guardarse como PDF.
+```
+Navegador
+   │
+   ├── archivos estáticos → Cloudflare Worker Assets
+   │
+   └── /api/* → Cloudflare Worker
+                    │
+                    └── D1 (DB)
+```
 
-## Respaldo y recuperación
+El frontend y la API se sirven desde el mismo Worker, por lo que no es necesario configurar CORS ni mantener dos dominios.
 
-La aplicación evita depender de una base de datos central mediante tres capas:
+## Estructura
 
-1. **Copia local cifrada automática:** cada navegador que participa conserva una copia AES-GCM de los registros que ha recibido.
-2. **Respaldo cifrado descargable:** cualquier participante puede descargar un archivo `.srbackup` y restaurarlo posteriormente con la clave de la sala.
-3. **Aviso al navegador custodio:** el navegador que crea o restaura la sala recibe una advertencia del navegador si intenta cerrar con cambios que todavía no han sido incluidos en un archivo de respaldo descargado.
+```
+public/
+  index.html
+  app.js
+  styles.css
+  favicon.svg
+  _headers
 
-La clave de 8 dígitos no se conserva de forma persistente en `localStorage`; solamente vive durante la sesión de la pestaña. Al volver a abrir la sala se solicita nuevamente para poder descifrar la copia local.
+src/
+  worker.js
 
-### Limitación importante
+schema.sql
+wrangler.jsonc
+package.json
+CLOUDFLARE_SETUP.md
+```
 
-No existe un servidor central que conserve respuestas. Si se pierden **todos** los navegadores participantes y también todos los archivos `.srbackup`, no hay un tercero del que recuperar los datos. El respaldo descargable existe precisamente para cubrir ese escenario.
+## Desarrollo local
 
-## Privacidad
+Después de configurar el ID de D1 en `wrangler.jsonc`:
 
-Las copias locales y los archivos `.srbackup` se cifran en el navegador mediante AES-GCM, con una clave derivada de la clave de la sala usando PBKDF2-SHA256.
+```bash
+npm install
+npm run db:local
+npm run dev
+```
 
-La clave de sala de 8 dígitos prioriza facilidad de uso y no debe considerarse equivalente a una contraseña de alta entropía para información extremadamente sensible.
+## Producción
 
-## Archivos
+Consulte `CLOUDFLARE_SETUP.md`.
 
-- `index.html`
-- `styles.css`
-- `app.js`
-- `favicon.svg`
+## Seguridad
 
-No requiere proceso de compilación.
+- Las consultas usan prepared statements y parámetros.
+- El PIN no se guarda en texto plano.
+- Después de validar el PIN se utiliza un token de sesión aleatorio almacenado únicamente durante la sesión del navegador.
+- Los tokens guardados en D1 se almacenan como SHA-256.
+- Las sesiones vencen a las 24 horas.
+- Los encabezados del frontend incluyen CSP, bloqueo de iframes, política de referer y restricciones de permisos.
+
+## Nota
+
+La aplicación ya no depende de GitHub Pages para producción. Cloudflare Workers sirve tanto los archivos estáticos como la API.
