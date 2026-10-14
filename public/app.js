@@ -13,6 +13,7 @@ let adminParticipants = [];
 let participantRoomId = null;
 let participantSessionToken = null;
 let participantRoomTitle = "Incorporación a la Sociedad de Radiología";
+let pendingParticipantAction = null;
 
 function normalizeRoomId(value) {
   return String(value || "").toUpperCase().replace(/[^A-Z2-9]/g, "").slice(0, 12);
@@ -434,6 +435,8 @@ async function accessParticipant(roomId, pin, errorTarget) {
     saveParticipantSession(roomId, data.session);
     history.replaceState(null, "", `#room=${roomId}`);
     showParticipantForm();
+    if (pendingParticipantAction) selectParticipantAction(pendingParticipantAction);
+    pendingParticipantAction = null;
   } catch (error) {
     showError(errorTarget, error.message);
   }
@@ -640,6 +643,14 @@ $("copyParticipantInviteBtn").addEventListener("click", copyParticipantInvite);
 $("resetParticipantPinBtn").addEventListener("click", resetParticipantPin);
 $("closeShareDialogBtn").addEventListener("click", () => $("shareDialog").close());
 
+function chooseJoinAction(action) {
+  pendingParticipantAction = action;
+  $("joinNewChoiceBtn").setAttribute("aria-pressed", String(action === "new"));
+  $("joinEditChoiceBtn").setAttribute("aria-pressed", String(action === "edit"));
+}
+$("joinNewChoiceBtn").addEventListener("click", () => chooseJoinAction("new"));
+$("joinEditChoiceBtn").addEventListener("click", () => chooseJoinAction("edit"));
+
 $("participantJoinBtn").addEventListener("click", () => {
   const pin = $("participantJoinPin").value.replace(/\D/g, "");
   if (pin.length !== 8) return showError("participantJoinError", "La clave debe tener 8 dígitos.");
@@ -658,6 +669,7 @@ async function boot() {
 
   if (hashRoom) {
     participantRoomId = hashRoom;
+    pendingParticipantAction = null;
     const session = readParticipantSession(hashRoom);
 
     if (session) {
