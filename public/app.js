@@ -60,6 +60,24 @@ function showOnly(sectionId) {
     "participantJoin",
     "participantApp"
   ].forEach((id) => $(id).classList.toggle("hidden", id !== sectionId));
+
+  $("navHomeLink").setAttribute("aria-current", sectionId === "landing" ? "page" : "false");
+  $("adminNavBtn").setAttribute("aria-current", sectionId.startsWith("admin") ? "page" : "false");
+}
+
+function goHome(event) {
+  event.preventDefault();
+  history.replaceState(null, "", location.pathname + location.search);
+  showOnly("landing");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+async function openAdminNavigation() {
+  if (adminUser || await loadAdminProfile()) {
+    await showDashboard();
+  } else {
+    showAdminAuth("login");
+  }
 }
 
 function showError(id, message) {
@@ -334,7 +352,8 @@ function renderAdminParticipants() {
       item.phone || "—",
       item.email || "—",
       item.conadem || "—",
-      WORK_LABELS[item.workType] || item.workType || "—"
+      WORK_LABELS[item.workType] || item.workType || "—",
+      item.workTitle || "—"
     ];
 
     values.forEach((value) => {
@@ -447,7 +466,8 @@ async function submitParticipant(event) {
         phone: String(data.get("phone") || "").trim(),
         email: String(data.get("email") || "").trim(),
         conadem: String(data.get("conadem") || "").trim(),
-        workType: String(data.get("workType") || "").trim()
+        workType: String(data.get("workType") || "").trim(),
+        workTitle: String(data.get("workTitle") || "").trim()
       })
     });
 
@@ -475,13 +495,14 @@ function exportCsv() {
   if (!currentAdminRoom) return;
 
   const rows = [
-    ["Nombre completo", "Teléfono", "Correo electrónico", "Nro. de CONADEM", "Tipo de trabajo"],
+    ["Nombre completo", "Teléfono", "Correo electrónico", "Nro. de CONADEM", "Tipo de trabajo", "Título del trabajo"],
     ...adminParticipants.map((item) => [
       item.name || "",
       item.phone || "",
       item.email || "",
       item.conadem || "",
-      WORK_LABELS[item.workType] || item.workType || ""
+      WORK_LABELS[item.workType] || item.workType || "",
+      item.workTitle || ""
     ])
   ];
 
@@ -500,7 +521,10 @@ function exportCsv() {
   URL.revokeObjectURL(url);
 }
 
-$("showAdminLoginBtn").addEventListener("click", () => showAdminAuth("login"));
+document.querySelectorAll("[data-home-link]").forEach((link) => link.addEventListener("click", goHome));
+$("adminNavBtn").addEventListener("click", openAdminNavigation);
+
+$("showAdminLoginBtn").addEventListener("click", openAdminNavigation);
 
 $("showParticipantAccessBtn").addEventListener("click", () => {
   $("participantManualPanel").classList.toggle("hidden");
