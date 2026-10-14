@@ -644,9 +644,9 @@ async function saveParticipantEdit(request, env, roomId) {
   const id = matches[0].id;
   const other = await env.DB.prepare(
     "SELECT id FROM participants WHERE room_id = ?1 AND LOWER(TRIM(email)) = ?2 " +
-    "AND id <> ?3 LIMIT 1"
-  ).bind(roomId, participant.email, id).first();
-  if (other) return fail("El correo ya pertenece a otro registro en esta hoja.", 409);
+    "AND LOWER(TRIM(conadem)) = ?3 AND id <> ?4 LIMIT 1"
+  ).bind(roomId, participant.email, normalizeConadem(participant.conadem), id).first();
+  if (other) return fail("El correo y CONADEM ya pertenecen a otro registro en esta hoja.", 409);
 
   const updated = await env.DB.prepare(
     "UPDATE participants SET name = ?1, phone = ?2, email = ?3, conadem = ?4, " +
