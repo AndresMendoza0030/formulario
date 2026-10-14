@@ -14,6 +14,8 @@ let participantRoomId = null;
 let participantSessionToken = null;
 let participantRoomTitle = "Incorporación a la Sociedad de Radiología";
 let pendingParticipantAction = "new";
+let participantEditToken = null;
+let participantEditEmail = "";
 
 function normalizeRoomId(value) {
   return String(value || "").toUpperCase().replace(/[^A-Z2-9]/g, "").slice(0, 12);
@@ -447,8 +449,7 @@ function showParticipantForm() {
   $("participantSuccess").classList.add("hidden");
   $("participantActionChooser").classList.remove("hidden");
   $("participantForm").reset();
-  $("participantUpdateForm").reset();
-  $("participantUpdateForm").classList.remove("hidden");
+  resetParticipantEditor();
   $("participantUpdateSuccess").classList.add("hidden");
   hideError("participantUpdateError");
   hideError("participantFormError");
@@ -465,7 +466,7 @@ function selectParticipantAction(action, focus = true) {
   hideError("participantFormError");
   if (focus) {
     const firstInput = edit
-      ? $("participantUpdateForm").querySelector('input[name="email"]')
+      ? $("participantEditEmailForm").querySelector('input[name="email"]')
       : $("participantForm").querySelector('input[name="name"]');
     firstInput.focus({ preventScroll: true });
     (edit ? $("participantUpdateCard") : $("participantNewCard"))
@@ -520,47 +521,118 @@ async function submitParticipant(event) {
   }
 }
 
-async function submitParticipantUpdate(event) {
-  event.preventDefault();
 
+function resetParticipantEditor() {
+  participantEditToken = null;
+  participantEditEmail = "";
+  $("participantEditEmailForm").reset();
+  $("participantEditCodeForm").reset();
+  $("participantUpdateForm").reset();
+  $("participantEditEmailForm").classList.remove("hidden");
+  $("participantEditCodeForm").classList.add("hidden");
+  $("participantUpdateForm").classList.add("hidden");
+  $("participantUpdateSuccess").classList.add("hidden");
+  hideError("participantUpdateError");
+}
+
+function fillParticipantEditForm(participant) {
+  const form = $("participantUpdateForm");
+  for (const field of ["name", "phone", "email", "conadem", "workTitle"]) {
+    const input = form.elements.namedItem(field);
+    input.value = participant[field] || "";
+  }
+  const choice = form.querySelector('input[name="workType"][value="' + participant.workType + '"]');
+  if (choice) choice.checked = true;
+}
+
+async function requestParticipantEditCode(event) {
+  event.preventDefault();
   const form = event.currentTarget;
-  const data = new FormData(form);
-  const button = $("participantUpdateSubmitBtn");
-  const original = button.textContent;
+  const email = String(new FormData(form).get("email") || "").trim();
+  const button = $("participantSendCodeBtn");
+  const label = button.textContent;
 
   try {
     hideError("participantUpdateError");
     button.disabled = true;
-    button.textContent = "Guardando…";
-
-    await participantApi("/api/rooms/" + participantRoomId + "/participants/complete-title", {
-      method: "POST",
-      body: JSON.stringify({
-        email: String(data.get("email") || "").trim(),
-        conadem: String(data.get("conadem") || "").trim(),
-        workTitle: String(data.get("workTitle") || "").trim()
-      })
+    button.textContent = "Enviando…";
+    await participantApi("/api/rooms/" + participantRoomId + "/edit/start", {
+      method: "POST", body: JSON.stringify({ email })
     });
-
-    form.reset();
-    form.classList.add("hidden");
-    $("participantActionChooser").classList.add("hidden");
-    $("participantNewCard").classList.add("hidden");
-    $("participantUpdateSuccess").classList.remove("hidden");
+    participantEditEmail = email;
+    $("participantEditCodeForm").reset();
+    $("participantEditEmailForm").classList.add("hidden");
+    $("participantEditCodeForm").classList.remove("hidden");
+    $("participantEditCodeForm").querySelector('input[name="code"]').focus();
   } catch (error) {
-    if (error.status === 401) {
-      sessionStorage.removeItem(participantSessionKey(participantRoomId));
-      participantSessionToken = null;
-      showOnly("participantJoin");
-      $("participantJoinCode").textContent = formatRoomId(participantRoomId);
-      showError("participantJoinError", "La sesión venció. Introduzca nuevamente la clave.");
-      return;
-    }
-
     showError("participantUpdateError", error.message);
   } finally {
     button.disabled = false;
-    button.textContent = original;
+    button.textContent = label;
+  }
+}
+
+async function verifyParticipantEditCode(event) {
+  event.preventDefault();
+  const code = String(new FormData(event.currentTarget).get("code") || "").trim();
+  const button = $("participantVerifyCodeBtn");
+  const label = button.textContent;
+
+  try {
+    hideError("participantUpdateError");
+    button.disabled = true;
+    button.textContent = "Verificando…";
+    const data = await participantApi("/api/rooms/" + participantRoomId + "/edit/verify", {
+      method: "POST",
+      body: JSON.stringify({ email: participantEditEmail, code })
+    });
+    participantEditToken = data.editToken;
+    fillParticipantEditForm(data.participant);
+    $("participantEditCodeForm").classList.add("hidden");
+    $("participantUpdateForm").classList.remove("hidden");
+  } catch (error) {
+    showError("participantUpdateError", error.message);
+  } finally {
+    button.disabled = false;
+    button.textContent = label;
+  }
+}
+
+async function submitParticipantUpdate(event) {
+  event.preventDefault();
+  const data = new FormData(event.currentTarget);
+  const button = $("participantUpdateSubmitBtn");
+  const label = button.textContent;
+
+  try {
+    hideError("participantUpdateError");
+    $("participantUpdateSuccess").classList.add("hidden");
+    button.disabled = true;
+    button.textContent = "Guardando…";
+    const result = await participantApi("/api/rooms/" + participantRoomId + "/edit", {
+      method: "PUT",
+      headers: { "x-edit-token": participantEditToken || "" },
+      body: JSON.stringify({
+        name: String(data.get("name") || "").trim(),
+        phone: String(data.get("phone") || "").trim(),
+        email: String(data.get("email") || "").trim(),
+        conadem: String(data.get("conadem") || "").trim(),
+        workType: String(data.get("workType") || "").trim(),
+        workTitle: String(data.get("workTitle") || "").trim()
+      })
+    });
+    fillParticipantEditForm(result.participant);
+    $("participantUpdateSuccess").classList.remove("hidden");
+  } catch (error) {
+    if (error.status === 401) {
+      resetParticipantEditor();
+      showError("participantUpdateError", "Su acceso venció. Solicite un nuevo código.");
+    } else {
+      showError("participantUpdateError", error.message);
+    }
+  } finally {
+    button.disabled = false;
+    button.textContent = label;
   }
 }
 
@@ -657,6 +729,9 @@ $("participantJoinBtn").addEventListener("click", () => {
 $("participantForm").addEventListener("submit", submitParticipant);
 $("participantNewChoiceBtn").addEventListener("click", () => selectParticipantAction("new"));
 $("participantEditChoiceBtn").addEventListener("click", () => selectParticipantAction("edit"));
+$("participantEditEmailForm").addEventListener("submit", requestParticipantEditCode);
+$("participantEditCodeForm").addEventListener("submit", verifyParticipantEditCode);
+$("participantEditBackBtn").addEventListener("click", resetParticipantEditor);
 $("participantUpdateForm").addEventListener("submit", submitParticipantUpdate);
 $("csvBtn").addEventListener("click", exportCsv);
 $("printBtn").addEventListener("click", () => window.print());
