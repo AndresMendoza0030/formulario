@@ -10,12 +10,6 @@ let adminUser = null;
 let adminRooms = [];
 let currentAdminRoom = null;
 let adminParticipants = [];
-let participantRoomId = null;
-let participantSessionToken = null;
-let participantRoomTitle = "Incorporación a la Sociedad de Radiología";
-let pendingParticipantAction = "new";
-let participantEditToken = null;
-let participantEditEmail = "";
 
 function normalizeRoomId(value) {
   return String(value || "").toUpperCase().replace(/[^A-Z2-9]/g, "").slice(0, 12);
@@ -47,25 +41,12 @@ function saveParticipantSession(id, session) {
   sessionStorage.setItem(participantSessionKey(id), JSON.stringify(session));
 }
 
-function readParticipantSession(id) {
-  try {
-    const value = JSON.parse(sessionStorage.getItem(participantSessionKey(id)) || "null");
-    if (!value?.token || !value?.expiresAt) return null;
-    if (Date.parse(value.expiresAt) <= Date.now()) return null;
-    return value;
-  } catch (_) {
-    return null;
-  }
-}
-
 function showOnly(sectionId) {
   [
     "landing",
     "adminAuth",
     "adminDashboard",
-    "adminRoom",
-    "participantJoin",
-    "participantApp"
+    "adminRoom"
   ].forEach((id) => $(id).classList.toggle("hidden", id !== sectionId));
 
   $("navHomeLink").setAttribute("aria-current", sectionId === "landing" ? "page" : "false");
@@ -103,27 +84,6 @@ async function api(path, options = {}) {
     credentials: "same-origin",
     headers: {
       ...(options.body ? { "content-type": "application/json" } : {}),
-      ...(options.headers || {})
-    }
-  });
-
-  const data = await response.json().catch(() => ({}));
-
-  if (!response.ok) {
-    const error = new Error(data.error || "No se pudo completar la solicitud.");
-    error.status = response.status;
-    throw error;
-  }
-
-  return data;
-}
-
-async function participantApi(path, options = {}) {
-  const response = await fetch(path, {
-    ...options,
-    headers: {
-      ...(options.body ? { "content-type": "application/json" } : {}),
-      ...(participantSessionToken ? { authorization: `Bearer ${participantSessionToken}` } : {}),
       ...(options.headers || {})
     }
   });
@@ -428,216 +388,13 @@ async function copyParticipantInvite() {
 async function accessParticipant(roomId, pin, errorTarget) {
   try {
     hideError(errorTarget);
-
-    const data = await participantApi(`/api/rooms/${roomId}/access`, {
-      method: "POST",
-      body: JSON.stringify({ pin })
+    const data = await api("/api/rooms/" + roomId + "/access", {
+      method: "POST", body: JSON.stringify({ pin })
     });
-
-    participantRoomId = roomId;
-    participantSessionToken = data.session.token;
-    participantRoomTitle = data.room?.title || "Incorporación a la Sociedad de Radiología";
-
     saveParticipantSession(roomId, data.session);
-    const target = pendingParticipantAction === "edit"
-      ? updateRoomLink(roomId) : roomLink(roomId);
-    window.location.assign(target);
+    window.location.assign(roomLink(roomId));
   } catch (error) {
     showError(errorTarget, error.message);
-  }
-}
-
-function showParticipantForm() {
-  showOnly("participantApp");
-  $("participantRoomCode").textContent = formatRoomId(participantRoomId);
-  $("participantRoomTitle").textContent = participantRoomTitle;
-  $("participantSuccess").classList.add("hidden");
-  $("participantActionChooser").classList.remove("hidden");
-  $("participantForm").reset();
-  resetParticipantEditor();
-  $("participantUpdateSuccess").classList.add("hidden");
-  hideError("participantUpdateError");
-  hideError("participantFormError");
-  selectParticipantAction("new", false);
-}
-
-function selectParticipantAction(action, focus = true) {
-  const edit = action === "edit";
-  $("participantNewCard").classList.toggle("hidden", edit);
-  $("participantUpdateCard").classList.toggle("hidden", !edit);
-  $("participantNewChoiceBtn").setAttribute("aria-pressed", String(!edit));
-  $("participantEditChoiceBtn").setAttribute("aria-pressed", String(edit));
-  hideError("participantUpdateError");
-  hideError("participantFormError");
-  if (focus) {
-    const firstInput = edit
-      ? $("participantEditEmailForm").querySelector('input[name="email"]')
-      : $("participantForm").querySelector('input[name="name"]');
-    firstInput.focus({ preventScroll: true });
-    (edit ? $("participantUpdateCard") : $("participantNewCard"))
-      .scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-}
-
-async function submitParticipant(event) {
-  event.preventDefault();
-
-  const form = event.currentTarget;
-  const data = new FormData(form);
-  const button = $("participantSubmitBtn");
-  const original = button.textContent;
-
-  try {
-    hideError("participantFormError");
-    button.disabled = true;
-    button.textContent = "Guardando…";
-
-    await participantApi(`/api/rooms/${participantRoomId}/participants`, {
-      method: "POST",
-      body: JSON.stringify({
-        name: String(data.get("name") || "").trim(),
-        phone: String(data.get("phone") || "").trim(),
-        email: String(data.get("email") || "").trim(),
-        conadem: String(data.get("conadem") || "").trim(),
-        workType: String(data.get("workType") || "").trim(),
-        workTitle: String(data.get("workTitle") || "").trim()
-      })
-    });
-
-    form.reset();
-    $("participantNewCard").classList.add("hidden");
-    $("participantUpdateCard").classList.add("hidden");
-    $("participantActionChooser").classList.add("hidden");
-    $("participantSuccess").classList.remove("hidden");
-  } catch (error) {
-    if (error.status === 401) {
-      sessionStorage.removeItem(participantSessionKey(participantRoomId));
-      participantSessionToken = null;
-      showOnly("participantJoin");
-      $("participantJoinCode").textContent = formatRoomId(participantRoomId);
-      showError("participantJoinError", "La sesión venció. Introduzca nuevamente la clave.");
-      return;
-    }
-
-    showError("participantFormError", error.message);
-  } finally {
-    button.disabled = false;
-    button.textContent = original;
-  }
-}
-
-
-function resetParticipantEditor() {
-  participantEditToken = null;
-  participantEditEmail = "";
-  $("participantEditEmailForm").reset();
-  $("participantEditCodeForm").reset();
-  $("participantUpdateForm").reset();
-  $("participantEditEmailForm").classList.remove("hidden");
-  $("participantEditCodeForm").classList.add("hidden");
-  $("participantUpdateForm").classList.add("hidden");
-  $("participantUpdateSuccess").classList.add("hidden");
-  hideError("participantUpdateError");
-}
-
-function fillParticipantEditForm(participant) {
-  const form = $("participantUpdateForm");
-  for (const field of ["name", "phone", "email", "conadem", "workTitle"]) {
-    const input = form.elements.namedItem(field);
-    input.value = participant[field] || "";
-  }
-  const choice = form.querySelector('input[name="workType"][value="' + participant.workType + '"]');
-  if (choice) choice.checked = true;
-}
-
-async function requestParticipantEditCode(event) {
-  event.preventDefault();
-  const form = event.currentTarget;
-  const email = String(new FormData(form).get("email") || "").trim();
-  const button = $("participantSendCodeBtn");
-  const label = button.textContent;
-
-  try {
-    hideError("participantUpdateError");
-    button.disabled = true;
-    button.textContent = "Enviando…";
-    await participantApi("/api/rooms/" + participantRoomId + "/edit/start", {
-      method: "POST", body: JSON.stringify({ email })
-    });
-    participantEditEmail = email;
-    $("participantEditCodeForm").reset();
-    $("participantEditEmailForm").classList.add("hidden");
-    $("participantEditCodeForm").classList.remove("hidden");
-    $("participantEditCodeForm").querySelector('input[name="code"]').focus();
-  } catch (error) {
-    showError("participantUpdateError", error.message);
-  } finally {
-    button.disabled = false;
-    button.textContent = label;
-  }
-}
-
-async function verifyParticipantEditCode(event) {
-  event.preventDefault();
-  const code = String(new FormData(event.currentTarget).get("code") || "").trim();
-  const button = $("participantVerifyCodeBtn");
-  const label = button.textContent;
-
-  try {
-    hideError("participantUpdateError");
-    button.disabled = true;
-    button.textContent = "Verificando…";
-    const data = await participantApi("/api/rooms/" + participantRoomId + "/edit/verify", {
-      method: "POST",
-      body: JSON.stringify({ email: participantEditEmail, code })
-    });
-    participantEditToken = data.editToken;
-    fillParticipantEditForm(data.participant);
-    $("participantEditCodeForm").classList.add("hidden");
-    $("participantUpdateForm").classList.remove("hidden");
-  } catch (error) {
-    showError("participantUpdateError", error.message);
-  } finally {
-    button.disabled = false;
-    button.textContent = label;
-  }
-}
-
-async function submitParticipantUpdate(event) {
-  event.preventDefault();
-  const data = new FormData(event.currentTarget);
-  const button = $("participantUpdateSubmitBtn");
-  const label = button.textContent;
-
-  try {
-    hideError("participantUpdateError");
-    $("participantUpdateSuccess").classList.add("hidden");
-    button.disabled = true;
-    button.textContent = "Guardando…";
-    const result = await participantApi("/api/rooms/" + participantRoomId + "/edit", {
-      method: "PUT",
-      headers: { "x-edit-token": participantEditToken || "" },
-      body: JSON.stringify({
-        name: String(data.get("name") || "").trim(),
-        phone: String(data.get("phone") || "").trim(),
-        email: String(data.get("email") || "").trim(),
-        conadem: String(data.get("conadem") || "").trim(),
-        workType: String(data.get("workType") || "").trim(),
-        workTitle: String(data.get("workTitle") || "").trim()
-      })
-    });
-    fillParticipantEditForm(result.participant);
-    $("participantUpdateSuccess").classList.remove("hidden");
-  } catch (error) {
-    if (error.status === 401) {
-      resetParticipantEditor();
-      showError("participantUpdateError", "Su acceso venció. Solicite un nuevo código.");
-    } else {
-      showError("participantUpdateError", error.message);
-    }
-  } finally {
-    button.disabled = false;
-    button.textContent = label;
   }
 }
 
@@ -717,27 +474,6 @@ $("copyParticipantInviteBtn").addEventListener("click", copyParticipantInvite);
 $("resetParticipantPinBtn").addEventListener("click", resetParticipantPin);
 $("closeShareDialogBtn").addEventListener("click", () => $("shareDialog").close());
 
-function chooseJoinAction(action) {
-  pendingParticipantAction = action;
-  $("joinNewChoiceBtn").setAttribute("aria-pressed", String(action === "new"));
-  $("joinEditChoiceBtn").setAttribute("aria-pressed", String(action === "edit"));
-}
-$("joinNewChoiceBtn").addEventListener("click", () => chooseJoinAction("new"));
-$("joinEditChoiceBtn").addEventListener("click", () => chooseJoinAction("edit"));
-
-$("participantJoinBtn").addEventListener("click", () => {
-  const pin = $("participantJoinPin").value.replace(/\D/g, "");
-  if (pin.length !== 8) return showError("participantJoinError", "La clave debe tener 8 dígitos.");
-  accessParticipant(participantRoomId, pin, "participantJoinError");
-});
-
-$("participantForm").addEventListener("submit", submitParticipant);
-$("participantNewChoiceBtn").addEventListener("click", () => selectParticipantAction("new"));
-$("participantEditChoiceBtn").addEventListener("click", () => selectParticipantAction("edit"));
-$("participantEditEmailForm").addEventListener("submit", requestParticipantEditCode);
-$("participantEditCodeForm").addEventListener("submit", verifyParticipantEditCode);
-$("participantEditBackBtn").addEventListener("click", resetParticipantEditor);
-$("participantUpdateForm").addEventListener("submit", submitParticipantUpdate);
 $("csvBtn").addEventListener("click", exportCsv);
 $("printBtn").addEventListener("click", () => window.print());
 
