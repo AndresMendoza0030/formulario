@@ -20,7 +20,7 @@ Desde el panel puede:
 - ver todas sus hojas
 - crear nuevas hojas
 - ver los participantes de cada hoja
-- consultar teléfono, correo y CONADEM
+- consultar teléfono, correo, CONADEM, tipo y título del trabajo
 - exportar CSV
 - imprimir/PDF
 - copiar la invitación para aspirantes
@@ -33,6 +33,8 @@ Usa:
 
 - enlace o código de sala
 - clave de aspirante
+
+El formulario solicita tipo de trabajo (investigación, monografía o caso interesante) y título del trabajo (de 3 a 200 caracteres), además de los datos de identificación.
 
 Puede enviar el formulario, pero no existe ningún endpoint que le permita descargar el listado completo.
 
@@ -69,6 +71,20 @@ Las hojas nuevas quedarán asociadas automáticamente a la cuenta administrativa
 
 Las hojas antiguas permanecen en D1, pero no aparecen automáticamente en el panel porque fueron creadas antes de existir propietarios administrativos.
 
+## Migración para el título del trabajo
+
+**Importante para una D1 existente:** antes de desplegar esta versión del Worker, ejecute **una sola vez**:
+
+```bash
+npm run db:migrate-work-title
+```
+
+La migración agrega `participants.work_title` sin borrar datos. Los registros anteriores conservan el título vacío y se muestran como «—» en el panel; los nuevos registros requieren título. El título aparece en el listado administrativo, CSV e impresión/PDF.
+
+Para una base de datos creada desde cero, `schema.sql` ya incluye la columna y no debe volver a ejecutar esta migración.
+
+El logotipo y el botón «Inicio» del encabezado llevan a la portada. El botón «Administración» abre el panel si existe una sesión activa o el acceso administrativo en caso contrario.
+
 ## Estructura
 
 ```
@@ -76,6 +92,7 @@ public/
 src/worker.js
 schema.sql
 migrations/0003_admin_accounts.sql
+migrations/0004_work_title.sql
 wrangler.jsonc
 package.json
 ```
