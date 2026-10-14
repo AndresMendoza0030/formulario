@@ -136,7 +136,9 @@ async function cleanupSessions(env) {
   try {
     await env.DB.batch([
       env.DB.prepare("DELETE FROM room_sessions WHERE expires_at <= ?1").bind(now),
-      env.DB.prepare("DELETE FROM admin_sessions WHERE expires_at <= ?1").bind(now)
+      env.DB.prepare("DELETE FROM admin_sessions WHERE expires_at <= ?1").bind(now),
+      env.DB.prepare("DELETE FROM participant_edit_codes WHERE expires_at <= ?1").bind(now),
+      env.DB.prepare("DELETE FROM participant_edit_sessions WHERE expires_at <= ?1").bind(now)
     ]);
   } catch (_) {}
 }
