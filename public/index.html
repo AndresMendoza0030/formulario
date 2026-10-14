@@ -271,6 +271,7 @@
         <div class="eyebrow">Acceso de aspirante</div>
         <h1>Ingresar al formulario</h1>
         <p class="lead">Sala <strong id="participantJoinCode"></strong>.</p>
+        <p class="participant-access-note">Este mismo enlace sirve para registrarse por primera vez o para completar el título de un trabajo registrado anteriormente. Después de ingresar la clave, elija la opción que corresponda.</p>
       </div>
 
       <label class="field-label">Clave de aspirante<input id="participantJoinPin" maxlength="8" inputmode="numeric" autocomplete="one-time-code" placeholder="00000000" /></label>
@@ -287,18 +288,31 @@
         </div>
       </header>
 
-      <section id="participantUpdateCard" class="institutional-panel form-card participant-update-card">
+      <section id="participantActionChooser" class="institutional-panel participant-choice-panel">
+        <div class="eyebrow">Seleccione una opción</div>
+        <h2>¿Qué desea hacer?</h2>
+        <div class="participant-choice-grid">
+          <button id="participantNewChoiceBtn" type="button" class="participant-choice-card" aria-controls="participantNewCard" aria-pressed="false">
+            <strong>Registrarme por primera vez</strong>
+            <span>Completar y enviar una nueva hoja de registro.</span>
+          </button>
+          <button id="participantEditChoiceBtn" type="button" class="participant-choice-card" aria-controls="participantUpdateCard" aria-pressed="false">
+            <strong>Ya me registré: actualizar mi respuesta</strong>
+            <span>Agregar el título de mi trabajo pendiente, sin crear otra inscripción.</span>
+          </button>
+        </div>
+      </section>
+
+      <section id="participantUpdateCard" class="institutional-panel form-card participant-update-card hidden">
         <div class="section-heading">
           <div class="section-number">01</div>
           <div>
             <div class="eyebrow">Para aspirantes ya inscritos</div>
-            <h2>¿Ya llenó su formulario?</h2>
-            <p>Si se registró antes de que se solicitara el título, puede añadirlo sin volver a registrarse.</p>
+            <h2>Completar mi registro anterior</h2>
+            <p>Si se registró antes de que se solicitara el título, puede agregarlo sin volver a llenar el formulario. Los demás datos se conservarán.</p>
           </div>
         </div>
-        <button id="toggleParticipantUpdateBtn" class="secondary" type="button">Agregar título a mi registro anterior</button>
-
-        <form id="participantUpdateForm" class="hidden">
+        <form id="participantUpdateForm">
           <p class="participant-update-help">Use el correo electrónico y número de CONADEM de su registro anterior.</p>
           <div class="form-grid">
             <label class="field-label">Correo electrónico original<input name="email" type="email" required maxlength="120" autocomplete="email" /></label>
@@ -315,9 +329,9 @@
         <p id="participantUpdateSuccess" class="status participant-update-success hidden" role="status">Su título se añadió correctamente al registro anterior. No necesita registrarse de nuevo.</p>
       </section>
 
-      <section class="institutional-panel form-card">
+      <section id="participantNewCard" class="institutional-panel form-card hidden">
         <div class="section-heading">
-          <div class="section-number">02</div>
+          <div class="section-number">01</div>
           <div>
             <div class="eyebrow">Datos del aspirante</div>
             <h2>Información de registro</h2>
@@ -375,7 +389,7 @@
         </div>
       </div>
 
-      <p class="dialog-intro">Esta clave solo permite llenar el formulario. No permite consultar otros registros.</p>
+      <p class="dialog-intro">El mismo enlace permite registrar nuevos aspirantes o completar el título de un trabajo ya inscrito. Los aspirantes no pueden ver el listado completo.</p>
       <label class="field-label">Código de sala<input id="shareRoomCode" readonly /></label>
       <label class="field-label">Clave de aspirante<input id="shareParticipantPin" readonly /></label>
       <label class="field-label">Enlace<input id="shareLink" readonly /></label>
