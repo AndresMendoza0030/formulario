@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#102a43" />
+  <meta name="description" content="Registro para incorporación a la Sociedad de Radiología." />
+  <title>Registrarme | Sociedad de Radiología</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="page-accent"></div>
+  <header class="site-header">
+    <div class="site-header-inner">
+      <a class="site-brand" href="/" aria-label="Ir al inicio">
+        <span class="brand-seal small" aria-hidden="true"><span>SR</span></span>
+        <span class="site-brand-text"><strong>Sociedad de Radiología</strong><small>Registro de incorporación</small></span>
+      </a>
+      <nav class="site-nav" aria-label="Opciones del formulario">
+        <a class="site-nav-link" href="/registro.html" data-room-link="/registro.html" aria-current="page">Registrarme</a>
+        <a class="site-nav-link" href="/actualizar.html" data-room-link="/actualizar.html">Actualizar mi registro</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="shell participant-route-shell">
+    <section id="roomAccess" class="institutional-panel join-panel">
+      <div class="brand-row compact">
+        <div class="brand-seal small" aria-hidden="true"><span>SR</span></div>
+        <div><div class="brand-name">Sociedad de Radiología</div><div class="brand-subtitle">Registrarme</div></div>
+      </div>
+      <h1>Registrarme</h1>
+      <p>Sala <strong id="roomCode"></strong></p>
+      <form id="pinForm">
+        <label class="field-label">Clave de aspirante
+          <input name="pin" maxlength="8" inputmode="numeric" autocomplete="off" required placeholder="00000000" pattern="[0-9]{8}" />
+        </label>
+        <button id="pinButton" class="primary" type="submit">Ingresar</button>
+        <p id="pinError" class="error hidden" role="alert"></p>
+      </form>
+    </section>
+
+    <section id="registrationArea" class="hidden">
+      <header class="institutional-header participant-header">
+        <div>
+          <div class="eyebrow light">Registro de aspirante</div>
+          <h1 id="roomTitle">Incorporación a la Sociedad de Radiología</h1>
+          <p>Código de sala: <strong id="roomCodeOpen"></strong></p>
+        </div>
+      </header>
+      <section id="registrationCard" class="institutional-panel form-card participant-route-card">
+        <div class="section-heading">
+          <div class="section-number">01</div>
+          <div><div class="eyebrow">Nuevo registro</div><h2>Información de registro</h2></div>
+        </div>
+        <form id="registrationForm">
+          <div class="form-grid">
+            <label class="field-label full">Nombre completo<input name="name" required maxlength="120" autocomplete="name" /></label>
+            <label class="field-label">Teléfono<input name="phone" required maxlength="40" autocomplete="tel" inputmode="tel" /></label>
+            <label class="field-label">Correo electrónico<input name="email" type="email" required maxlength="120" autocomplete="email" /></label>
+            <label class="field-label full">Nro. de CONADEM<input name="conadem" required maxlength="60" /></label>
+          </div>
+          <fieldset class="work-type">
+            <legend>Tipo de trabajo que presentará</legend>
+            <div class="choice-grid">
+              <label class="choice-card"><input type="radio" name="workType" value="A" required /><span class="choice-letter">A</span><span class="choice-text"><strong>Trabajo de investigación</strong></span></label>
+              <label class="choice-card"><input type="radio" name="workType" value="B" required /><span class="choice-letter">B</span><span class="choice-text"><strong>Monografía</strong></span></label>
+              <label class="choice-card"><input type="radio" name="workType" value="C" required /><span class="choice-letter">C</span><span class="choice-text"><strong>Caso interesante</strong></span></label>
+            </div>
+          </fieldset>
+          <label class="field-label work-title-field">Título del trabajo
+            <input name="workTitle" required minlength="3" maxlength="200" placeholder="Título de su trabajo" />
+          </label>
+          <div class="form-footer">
+            <p id="registrationError" class="error hidden" role="alert"></p>
+            <button id="registrationButton" class="primary" type="submit">Guardar registro</button>
+          </div>
+        </form>
+      </section>
+      <section id="registrationSuccess" class="institutional-panel success-card participant-route-card hidden" role="status">
+        <div class="success-icon">✓</div>
+        <div><h2>Registro guardado correctamente</h2><p>Su información fue recibida.</p></div>
+      </section>
+    </section>
+  </main>
+  <script type="module" src="/registro.js"></script>
+</body>
+</html>
