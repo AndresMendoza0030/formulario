@@ -19,15 +19,31 @@
     <svg class="motif motif-crosshair" viewBox="0 0 120 120"><circle cx="60" cy="60" r="28"></circle><circle cx="60" cy="60" r="7"></circle><path d="M60 18v25M60 77v25M18 60h25M77 60h25"></path></svg>
   </div>
 
+  <header class="site-header">
+    <div class="site-header-inner">
+      <a class="site-brand" href="/" data-home-link aria-label="Ir al inicio de la Sociedad de Radiología">
+        <span class="brand-seal small" aria-hidden="true"><span>SR</span></span>
+        <span class="site-brand-text">
+          <strong>Sociedad de Radiología</strong>
+          <small>Registro de incorporación</small>
+        </span>
+      </a>
+      <nav class="site-nav" aria-label="Navegación principal">
+        <a id="navHomeLink" class="site-nav-link" href="/" data-home-link>Inicio</a>
+        <button id="adminNavBtn" class="site-nav-action" type="button">Administración</button>
+      </nav>
+    </div>
+  </header>
+
   <main class="shell">
     <section id="landing" class="institutional-panel hero">
-      <div class="brand-row">
-        <div class="brand-seal" aria-hidden="true"><span>SR</span></div>
-        <div>
-          <div class="brand-name">Sociedad de Radiología</div>
-          <div class="brand-subtitle">Proceso de incorporación</div>
-        </div>
-      </div>
+      <a class="brand-row hero-brand-link" href="/" data-home-link aria-label="Volver al inicio">
+        <span class="brand-seal" aria-hidden="true"><span>SR</span></span>
+        <span>
+          <span class="brand-name">Sociedad de Radiología</span>
+          <span class="brand-subtitle">Proceso de incorporación</span>
+        </span>
+      </a>
 
       <div class="hero-divider"></div>
 
@@ -81,6 +97,7 @@
             <li>Correo electrónico</li>
             <li>Nro. de CONADEM</li>
             <li>Tipo de trabajo a presentar</li>
+            <li>Título del trabajo</li>
           </ol>
         </aside>
       </div>
@@ -232,6 +249,7 @@
                 <th>Correo electrónico</th>
                 <th>Nro. CONADEM</th>
                 <th>Tipo de trabajo</th>
+                <th>Título del trabajo</th>
               </tr>
             </thead>
             <tbody id="participantsBody"></tbody>
@@ -295,6 +313,11 @@
               <label class="choice-card"><input type="radio" name="workType" value="C" required /><span class="choice-letter">C</span><span class="choice-text"><strong>Caso interesante</strong><small>Presentación estructurada de un caso de interés.</small></span></label>
             </div>
           </fieldset>
+
+          <label class="field-label work-title-field">
+            Título del trabajo
+            <input name="workTitle" type="text" required minlength="3" maxlength="200" autocomplete="off" placeholder="Escriba el título de su trabajo" />
+          </label>
 
           <div class="form-footer">
             <p id="participantFormError" class="error hidden"></p>

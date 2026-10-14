@@ -60,6 +60,7 @@ CREATE TABLE IF NOT EXISTS participants (
   email TEXT NOT NULL,
   conadem TEXT NOT NULL,
   work_type TEXT NOT NULL CHECK (work_type IN ('A', 'B', 'C')),
+  work_title TEXT NOT NULL DEFAULT '',
   created_at TEXT NOT NULL,
   FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE
 );

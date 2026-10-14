@@ -47,6 +47,21 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round
 .motif-crosshair { right: 9%; bottom: 13%; width: 135px; height: 135px; animation-delay: -9s; }
 @keyframes float { from { translate: 0 -4px; } to { translate: 0 10px; } }
 
+.site-header { position: relative; z-index: 3; background: rgba(255,255,255,.96); border-bottom: 1px solid var(--slate-200); box-shadow: 0 3px 18px rgba(11,31,51,.05); }
+.site-header-inner { width: min(1240px, calc(100% - 32px)); margin: 0 auto; padding: 12px 0; min-height: 74px; display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+.site-brand { display: inline-flex; align-items: center; gap: 12px; min-width: 0; text-decoration: none; color: var(--navy-950); }
+.site-brand-text { display: grid; gap: 3px; }
+.site-brand-text strong { font-family: Georgia,serif; font-size: 1.06rem; white-space: nowrap; }
+.site-brand-text small { color: var(--slate-500); text-transform: uppercase; font-size: .69rem; font-weight: 750; letter-spacing: .07em; }
+.site-nav { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.site-nav-link,.site-nav-action { font: inherit; font-size: .9rem; font-weight: 750; color: var(--navy-900); border: 1px solid transparent; border-radius: 9px; background: transparent; padding: 11px 14px; text-decoration: none; cursor: pointer; white-space: nowrap; }
+.site-nav-link:hover,.site-nav-action:hover,.site-nav-link[aria-current="page"],.site-nav-action[aria-current="page"] { background: var(--navy-100); }
+.site-nav-action { border-color: var(--slate-300); }
+.site-brand:focus-visible,.hero-brand-link:focus-visible,.site-nav-link:focus-visible,.site-nav-action:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+.hero-brand-link { width: fit-content; color: inherit; text-decoration: none; }
+.hero-brand-link:hover .brand-name,.site-brand:hover .site-brand-text strong { color: var(--navy-700); }
+.hero-brand-link .brand-name,.hero-brand-link .brand-subtitle { display: block; }
+
 .shell { width: min(1240px, calc(100% - 32px)); margin: 34px auto 56px; position: relative; z-index: 1; }
 .hidden { display: none !important; }
 
@@ -144,6 +159,7 @@ input:focus { border-color: var(--navy-700); box-shadow: 0 0 0 3px rgba(31,78,12
 .form-grid .full { grid-column: 1/-1; }
 .work-type { border: 0; padding: 0; margin: 25px 0 0; }
 .work-type legend { width: 100%; padding: 0; color: var(--navy-950); font-family: Georgia,serif; font-size: 1.05rem; font-weight: 700; margin-bottom: 13px; }
+.work-title-field { margin-top: 23px; max-width: 780px; }
 .choice-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; }
 .choice-card { position: relative; display: flex; gap: 12px; align-items: flex-start; min-height: 116px; padding: 17px; border: 1px solid var(--slate-300); border-radius: 10px; background: #fff; cursor: pointer; }
 .choice-card:has(input:checked) { border-color: var(--navy-700); background: #f5f9fc; box-shadow: inset 0 0 0 1px var(--navy-700); }
@@ -194,6 +210,11 @@ dialog::backdrop { background: rgba(7,22,36,.62); backdrop-filter: blur(2px); }
 }
 
 @media (max-width: 650px) {
+  .site-header-inner { width: calc(100% - 20px); min-height: 65px; gap: 8px; }
+  .site-brand-text { display: none; }
+  .site-brand .brand-seal { width: 43px; height: 43px; }
+  .site-nav { gap: 3px; }
+  .site-nav-link,.site-nav-action { padding: 10px 9px; font-size: .81rem; }
   .shell { width: min(100% - 18px,1240px); margin-top: 18px; }
   .hero,.join-panel,.form-card,.list-card { padding-left: 20px; padding-right: 20px; }
   h1 { font-size: 2.15rem; }
@@ -212,7 +233,7 @@ dialog::backdrop { background: rgba(7,22,36,.62); backdrop-filter: blur(2px); }
 @media (prefers-reduced-motion: reduce) { .motif { animation: none; } }
 
 @media print {
-  .page-accent,.background-motifs,.top-actions,.server-note,.form-card,.confidentiality-note,.list-actions { display: none !important; }
+  .page-accent,.site-header,.background-motifs,.top-actions,.server-note,.form-card,.confidentiality-note,.list-actions { display: none !important; }
   body { background: white; }
   .shell { width: 100%; margin: 0; }
   .institutional-header { background: white !important; color: black; box-shadow: none; padding: 0 0 20px; }

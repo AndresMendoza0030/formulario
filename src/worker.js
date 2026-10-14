@@ -251,14 +251,16 @@ function validateParticipant(value) {
   const email = normalizeEmail(value?.email);
   const conadem = String(value?.conadem || "").trim();
   const workType = String(value?.workType || "").trim().toUpperCase();
+  const workTitle = String(value?.workTitle || "").trim();
 
   if (name.length < 3 || name.length > 120) throw new Error("Revise el nombre completo.");
   if (phone.length < 7 || phone.length > 40) throw new Error("Revise el teléfono.");
   if (!validateEmail(email) || email.length > 120) throw new Error("Revise el correo electrónico.");
   if (conadem.length < 1 || conadem.length > 60) throw new Error("Revise el Nro. de CONADEM.");
   if (!WORK_TYPES.has(workType)) throw new Error("Seleccione un tipo de trabajo válido.");
+  if (workTitle.length < 3 || workTitle.length > 200) throw new Error("Escriba un título del trabajo de entre 3 y 200 caracteres.");
 
-  return { name, phone, email, conadem, workType };
+  return { name, phone, email, conadem, workType, workTitle };
 }
 
 async function registerAdmin(request, env) {
@@ -459,7 +461,7 @@ async function listAdminParticipants(request, env, roomId) {
   if (!room) return fail("No tiene acceso administrativo a esta hoja.", 403);
 
   const result = await env.DB.prepare(
-    `SELECT id, name, phone, email, conadem, work_type AS workType, created_at AS createdAt
+    `SELECT id, name, phone, email, conadem, work_type AS workType, work_title AS workTitle, created_at AS createdAt
      FROM participants
      WHERE room_id = ?1
      ORDER BY created_at ASC`
@@ -531,8 +533,8 @@ async function addParticipant(request, env, roomId) {
 
   await env.DB.prepare(
     `INSERT INTO participants
-     (id, room_id, name, phone, email, conadem, work_type, created_at)
-     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)`
+     (id, room_id, name, phone, email, conadem, work_type, work_title, created_at)
+     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)`
   ).bind(
     id,
     roomId,
@@ -541,6 +543,7 @@ async function addParticipant(request, env, roomId) {
     participant.email,
     participant.conadem,
     participant.workType,
+    participant.workTitle,
     createdAt
   ).run();
 
@@ -554,6 +557,7 @@ async function addParticipant(request, env, roomId) {
       id,
       name: participant.name,
       workType: participant.workType,
+      workTitle: participant.workTitle,
       createdAt
     }
   }, 201);
