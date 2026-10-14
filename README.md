@@ -85,48 +85,33 @@ Para una base de datos creada desde cero, `schema.sql` ya incluye la columna y n
 
 El logotipo y el botón «Inicio» del encabezado llevan a la portada. El botón «Administración» abre el panel si existe una sesión activa o el acceso administrativo en caso contrario.
 
-## Actualización de registros existentes por correo
+## Registro y actualización: páginas independientes
 
-En la misma invitación se muestran las opciones **Registrarme** (preseleccionada) y **Actualizar mi registro**.
+Las invitaciones incluyen dos enlaces separados:
 
-La actualización solicita **solo el correo original** como identificador (la búsqueda ignora mayúsculas y espacios de los extremos). La app envía un código de 8 dígitos al correo; únicamente tras verificarlo se muestran nombre, teléfono, correo, número de CONADEM, tipo y título del trabajo, todos editables. El código vence a los 10 minutos y admite hasta 5 intentos. La sesión de edición dura 30 minutos; no se almacena en el navegador de forma persistente.
+- **Registrarme:** `/registro.html?room=CODIGO`
+- **Actualizar mi registro:** `/actualizar.html?room=CODIGO`
 
-El acceso a la sala sigue requiriendo el código de sala y clave de aspirante. Un correo no verificado nunca permite ver ni modificar datos ajenos. Si hay dos registros con el mismo correo en la misma sala, el aspirante debe acudir al administrador para resolver la duplicidad.
+El enlace antiguo con `/#room=CODIGO` sigue funcionando y redirige a la página de registro, desde la que se puede abrir la ruta de actualización.
 
-### Configuración obligatoria para una D1 existente
+En ambas rutas se requiere la clave de aspirante de la sala. Para actualizar se solicitan únicamente el **correo electrónico y Nro. de CONADEM originales**. La búsqueda ignora mayúsculas/minúsculas y espacios al inicio o final de ambos valores. Si encuentra exactamente un registro, carga los seis campos originales (nombre, teléfono, correo, CONADEM, tipo y título del trabajo) y permite modificarlos. El título puede estar vacío en registros antiguos. Los cambios se guardan en el mismo registro, sin inscribir al aspirante de nuevo.
 
-Antes de desplegar el Worker actualizado, ejecute **una sola vez**:
+No se envía ningún código ni se necesita configurar un proveedor de correo o hacer migraciones nuevas. Las consultas utilizan la tabla `participants` existente. Si dos registros de una sala comparten el mismo correo y CONADEM, se solicita ayuda al administrador.
 
-```bash
-npm run db:migrate-participant-edit
-```
-
-Esta migración crea únicamente tablas nuevas de verificación y sesión, sin borrar ni modificar los registros actuales. En una base D1 nueva, ejecutar `schema.sql` es suficiente.
-
-### Configuración de envío de códigos
-
-Se utiliza **Resend** para enviar los mensajes de verificación; necesita un dominio remitente verificado en esa plataforma. Configure estos dos secretos en Cloudflare Workers (nombre del Worker: `formulario`):
-
-```bash
-npx wrangler secret put RESEND_API_KEY
-npx wrangler secret put EDIT_FROM_EMAIL
-```
-
-El segundo valor es el remitente autorizado, por ejemplo: `Sociedad de Radiología <registros@tu-dominio.com>`.
-
-No ponga la clave de Resend en GitHub ni en `wrangler.jsonc`. Si no se han configurado los secretos, el inicio de actualización muestra un aviso y **no expone ningún dato personal**. El formulario nuevo y el acceso administrativo permanecen disponibles.
-
-Una vez aplicadas la migración y las dos configuraciones, despliegue nuevamente `main` y pruebe con un registro de prueba y un correo de destino real.
+**Advertencia:** la clave de la sala es compartida, y el correo y CONADEM pueden ser conocidos por terceros. Este acceso es sencillo, pero no equivale a una autenticación individual. Quien conozca esos datos y tenga la clave de sala podría consultar o modificar el registro correspondiente.
 
 ## Estructura
 
 ```
-public/
+public/registro.html
+public/registro.js
+public/actualizar.html
+public/actualizar.js
+public/participant-common.js
 src/worker.js
 schema.sql
 migrations/0003_admin_accounts.sql
 migrations/0004_work_title.sql
-migrations/0005_participant_edit.sql
 wrangler.jsonc
 package.json
 ```
