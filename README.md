@@ -85,6 +85,16 @@ Para una base de datos creada desde cero, `schema.sql` ya incluye la columna y n
 
 El logotipo y el botón «Inicio» del encabezado llevan a la portada. El botón «Administración» abre el panel si existe una sesión activa o el acceso administrativo en caso contrario.
 
+## Completar títulos de registros anteriores
+
+Los aspirantes que enviaron su formulario antes de que se solicitara el título pueden entrar con el enlace/código y clave de su hoja, y seleccionar **«Agregar título a mi registro anterior»**.
+
+Se pide el correo y número de CONADEM originales, además del título nuevo (entre 3 y 200 caracteres). El sistema identifica un único registro de esa hoja y **solo actualiza `work_title` si estaba vacío**. Si hay registros duplicados con los mismos datos o el título ya está completado, el registro se deja intacto y se indica contactar a la administración. No se expone el listado de aspirantes ni se crea un registro nuevo.
+
+No hay ninguna migración adicional: se utiliza `participants.work_title`, introducida por `0004_work_title.sql`. En una D1 existente, ejecutar `npm run db:migrate-work-title` una única vez antes de desplegar si aún no se ha aplicado.
+
+**Nota de seguridad:** el correo y CONADEM no demuestran propiedad del buzón: son una comprobación básica junto con la clave de acceso a la hoja. Esto no equivale a iniciar sesión con un código enviado al correo. La aplicación no puede reconocer de forma fiable a los aspirantes anteriores solo por dispositivo porque no guardaba identificadores individuales.
+
 ## Estructura
 
 ```
