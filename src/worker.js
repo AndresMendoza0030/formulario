@@ -563,6 +563,50 @@ async function addParticipant(request, env, roomId) {
   }, 201);
 }
 
+async function completeParticipantWorkTitle(request, env, roomId) {
+  const session = await getParticipantSession(request, env, roomId);
+  if (!session) return fail("La sesión de esta sala no es válida o ha vencido.", 401);
+
+  const body = await readJson(request);
+  const email = normalizeEmail(body?.email);
+  const conadem = String(body?.conadem || "").trim();
+  const workTitle = String(body?.workTitle || "").trim();
+
+  if (!validateEmail(email) || email.length > 120) return fail("Revise el correo electrónico original.", 400);
+  if (!conadem || conadem.length > 60) return fail("Revise su número de CONADEM original.", 400);
+  if (workTitle.length < 3 || workTitle.length > 200) {
+    return fail("Escriba un título del trabajo de entre 3 y 200 caracteres.", 400);
+  }
+
+  // El acceso de sala es compartido: nunca basta el correo para modificar registros.
+  // Se exige el correo y CONADEM originales, sin mostrar información personal.
+  const matching = await env.DB.prepare(
+    "SELECT id, work_title AS workTitle FROM participants " +
+    "WHERE room_id = ?1 AND LOWER(TRIM(email)) = ?2 " +
+    "AND LOWER(TRIM(conadem)) = ?3 LIMIT 2"
+  ).bind(roomId, email, conadem.toLowerCase()).all();
+
+  const found = matching.results || [];
+  const notEligible = "No se encontró un registro único con ese correo y CONADEM que tenga el título pendiente. Verifique los datos originales o consulte al administrador.";
+  if (found.length !== 1 || String(found[0].workTitle || "").trim()) {
+    return fail(notEligible, 409);
+  }
+
+  // No permite sustituir un título ya completado, incluso con solicitudes simultáneas.
+  const updated = await env.DB.prepare(
+    "UPDATE participants SET work_title = ?1 " +
+    "WHERE id = ?2 AND room_id = ?3 AND TRIM(COALESCE(work_title, '')) = ''"
+  ).bind(workTitle, found[0].id, roomId).run();
+
+  if (Number(updated.meta?.changes || 0) !== 1) return fail(notEligible, 409);
+
+  await env.DB.prepare(
+    "UPDATE rooms SET updated_at = ?1 WHERE id = ?2"
+  ).bind(new Date().toISOString(), roomId).run();
+
+  return json({ ok: true, message: "El título de su trabajo fue agregado al registro original." });
+}
+
 async function routeApi(request, env) {
   const url = new URL(request.url);
   const path = url.pathname.replace(/\/+$/, "") || "/";
@@ -608,6 +652,11 @@ async function routeApi(request, env) {
   const accessMatch = path.match(/^\/api\/rooms\/([A-Z2-9]{12})\/access$/);
   if (request.method === "POST" && accessMatch) {
     return accessParticipantRoom(request, env, accessMatch[1]);
+  }
+
+  const completeTitleMatch = path.match(/^\/api\/rooms\/([A-Z2-9]{12})\/participants\/complete-title$/);
+  if (request.method === "POST" && completeTitleMatch) {
+    return completeParticipantWorkTitle(request, env, completeTitleMatch[1]);
   }
 
   const participantSubmitMatch = path.match(/^\/api\/rooms\/([A-Z2-9]{12})\/participants$/);
