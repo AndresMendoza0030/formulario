@@ -408,7 +408,8 @@ async function copyParticipantInvite() {
     `Código de sala: ${formatRoomId(currentAdminRoom.id)}\n` +
     `Clave: ${currentAdminRoom.participantPin}\n` +
     `Enlace: ${roomLink(currentAdminRoom.id)}\n\n` +
-    `Este acceso es únicamente para completar el formulario.`;
+    `Este enlace permite llenar el formulario por primera vez o, si ya se registró, elegir «Ya me registré: actualizar mi respuesta» para agregar el título de su trabajo pendiente, sin duplicar su inscripción.\n\n` +
+    `El listado de aspirantes es privado.`;
 
   await navigator.clipboard.writeText(text);
 
@@ -443,14 +444,33 @@ function showParticipantForm() {
   $("participantRoomCode").textContent = formatRoomId(participantRoomId);
   $("participantRoomTitle").textContent = participantRoomTitle;
   $("participantSuccess").classList.add("hidden");
-  $("participantForm").closest(".form-card").classList.remove("hidden");
-  $("participantUpdateCard").classList.remove("hidden");
+  $("participantNewCard").classList.add("hidden");
+  $("participantUpdateCard").classList.add("hidden");
+  $("participantActionChooser").classList.remove("hidden");
+  $("participantNewChoiceBtn").setAttribute("aria-pressed", "false");
+  $("participantEditChoiceBtn").setAttribute("aria-pressed", "false");
+  $("participantForm").reset();
   $("participantUpdateForm").reset();
-  $("participantUpdateForm").classList.add("hidden");
+  $("participantUpdateForm").classList.remove("hidden");
   $("participantUpdateSuccess").classList.add("hidden");
-  $("toggleParticipantUpdateBtn").classList.remove("hidden");
-  $("toggleParticipantUpdateBtn").textContent = "Agregar título a mi registro anterior";
   hideError("participantUpdateError");
+  hideError("participantFormError");
+}
+
+function selectParticipantAction(action) {
+  const edit = action === "edit";
+  $("participantNewCard").classList.toggle("hidden", edit);
+  $("participantUpdateCard").classList.toggle("hidden", !edit);
+  $("participantNewChoiceBtn").setAttribute("aria-pressed", String(!edit));
+  $("participantEditChoiceBtn").setAttribute("aria-pressed", String(edit));
+  hideError("participantUpdateError");
+  hideError("participantFormError");
+  const firstInput = edit
+    ? $("participantUpdateForm").querySelector('input[name="email"]')
+    : $("participantForm").querySelector('input[name="name"]');
+  firstInput.focus({ preventScroll: true });
+  (edit ? $("participantUpdateCard") : $("participantNewCard"))
+    .scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 async function submitParticipant(event) {
@@ -479,8 +499,9 @@ async function submitParticipant(event) {
     });
 
     form.reset();
-    form.closest(".form-card").classList.add("hidden");
+    $("participantNewCard").classList.add("hidden");
     $("participantUpdateCard").classList.add("hidden");
+    $("participantActionChooser").classList.add("hidden");
     $("participantSuccess").classList.remove("hidden");
   } catch (error) {
     if (error.status === 401) {
@@ -523,8 +544,8 @@ async function submitParticipantUpdate(event) {
 
     form.reset();
     form.classList.add("hidden");
-    $("toggleParticipantUpdateBtn").classList.add("hidden");
-    $("participantForm").closest(".form-card").classList.add("hidden");
+    $("participantActionChooser").classList.add("hidden");
+    $("participantNewCard").classList.add("hidden");
     $("participantUpdateSuccess").classList.remove("hidden");
   } catch (error) {
     if (error.status === 401) {
@@ -626,16 +647,8 @@ $("participantJoinBtn").addEventListener("click", () => {
 });
 
 $("participantForm").addEventListener("submit", submitParticipant);
-$("toggleParticipantUpdateBtn").addEventListener("click", () => {
-  const form = $("participantUpdateForm");
-  form.classList.toggle("hidden");
-  const opened = !form.classList.contains("hidden");
-  $("toggleParticipantUpdateBtn").textContent = opened
-    ? "Cancelar actualización"
-    : "Agregar título a mi registro anterior";
-  hideError("participantUpdateError");
-  if (opened) form.querySelector("input[name='email']").focus();
-});
+$("participantNewChoiceBtn").addEventListener("click", () => selectParticipantAction("new"));
+$("participantEditChoiceBtn").addEventListener("click", () => selectParticipantAction("edit"));
 $("participantUpdateForm").addEventListener("submit", submitParticipantUpdate);
 $("csvBtn").addEventListener("click", exportCsv);
 $("printBtn").addEventListener("click", () => window.print());
