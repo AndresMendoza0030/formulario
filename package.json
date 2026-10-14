@@ -10,8 +10,7 @@
     "db:remote": "wrangler d1 execute database_name --remote --file=./schema.sql",
     "db:migrate-roles": "wrangler d1 execute database_name --remote --file=./migrations/0002_access_roles.sql",
     "db:migrate-admin-accounts": "wrangler d1 execute database_name --remote --file=./migrations/0003_admin_accounts.sql",
-    "db:migrate-work-title": "wrangler d1 execute database_name --remote --file=./migrations/0004_work_title.sql",
-    "db:migrate-participant-edit": "wrangler d1 execute database_name --remote --file=./migrations/0005_participant_edit.sql"
+    "db:migrate-work-title": "wrangler d1 execute database_name --remote --file=./migrations/0004_work_title.sql"
   },
   "devDependencies": {
     "wrangler": "^4.102.0"
