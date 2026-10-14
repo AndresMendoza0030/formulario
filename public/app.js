@@ -32,7 +32,11 @@ function roomFromHash() {
 }
 
 function roomLink(id) {
-  return `${location.origin}${location.pathname}#room=${encodeURIComponent(id)}`;
+  return `${location.origin}/registro.html?room=${encodeURIComponent(id)}`;
+}
+
+function updateRoomLink(id) {
+  return `${location.origin}/actualizar.html?room=${encodeURIComponent(id)}`;
 }
 
 function participantSessionKey(id) {
@@ -375,6 +379,7 @@ function openShareDialog() {
   $("shareRoomCode").value = formatRoomId(currentAdminRoom.id);
   $("shareParticipantPin").value = currentAdminRoom.participantPin || "No disponible";
   $("shareLink").value = roomLink(currentAdminRoom.id);
+  $("shareUpdateLink").value = updateRoomLink(currentAdminRoom.id);
   $("shareDialog").showModal();
 }
 
@@ -410,7 +415,8 @@ async function copyParticipantInvite() {
     `${currentAdminRoom.title || "Hoja de registro"}\n\n` +
     `Código de sala: ${formatRoomId(currentAdminRoom.id)}\n` +
     `Clave: ${currentAdminRoom.participantPin}\n` +
-    `Enlace: ${roomLink(currentAdminRoom.id)}`;
+    `Registrarme: ${roomLink(currentAdminRoom.id)}\n` +
+    `Actualizar mi registro: ${updateRoomLink(currentAdminRoom.id)}`;
 
   await navigator.clipboard.writeText(text);
 
@@ -433,10 +439,9 @@ async function accessParticipant(roomId, pin, errorTarget) {
     participantRoomTitle = data.room?.title || "Incorporación a la Sociedad de Radiología";
 
     saveParticipantSession(roomId, data.session);
-    history.replaceState(null, "", `#room=${roomId}`);
-    showParticipantForm();
-    if (pendingParticipantAction === "edit") selectParticipantAction("edit");
-    pendingParticipantAction = "new";
+    const target = pendingParticipantAction === "edit"
+      ? updateRoomLink(roomId) : roomLink(roomId);
+    window.location.assign(target);
   } catch (error) {
     showError(errorTarget, error.message);
   }
@@ -740,19 +745,8 @@ async function boot() {
   const hashRoom = roomFromHash();
 
   if (hashRoom) {
-    participantRoomId = hashRoom;
-    pendingParticipantAction = "new";
-    chooseJoinAction("new");
-    const session = readParticipantSession(hashRoom);
-
-    if (session) {
-      participantSessionToken = session.token;
-      showParticipantForm();
-      return;
-    }
-
-    $("participantJoinCode").textContent = formatRoomId(hashRoom);
-    showOnly("participantJoin");
+    // Enlaces anteriores: conservar la sala y abrir la página de registro.
+    window.location.replace(roomLink(hashRoom));
     return;
   }
 
