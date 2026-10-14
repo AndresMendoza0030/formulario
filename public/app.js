@@ -13,7 +13,7 @@ let adminParticipants = [];
 let participantRoomId = null;
 let participantSessionToken = null;
 let participantRoomTitle = "Incorporación a la Sociedad de Radiología";
-let pendingParticipantAction = null;
+let pendingParticipantAction = "new";
 
 function normalizeRoomId(value) {
   return String(value || "").toUpperCase().replace(/[^A-Z2-9]/g, "").slice(0, 12);
@@ -408,9 +408,7 @@ async function copyParticipantInvite() {
     `${currentAdminRoom.title || "Hoja de registro"}\n\n` +
     `Código de sala: ${formatRoomId(currentAdminRoom.id)}\n` +
     `Clave: ${currentAdminRoom.participantPin}\n` +
-    `Enlace: ${roomLink(currentAdminRoom.id)}\n\n` +
-    `Este enlace permite llenar el formulario por primera vez o, si ya se registró, elegir «Ya me registré: actualizar mi respuesta» para agregar el título de su trabajo pendiente, sin duplicar su inscripción.\n\n` +
-    `El listado de aspirantes es privado.`;
+    `Enlace: ${roomLink(currentAdminRoom.id)}`;
 
   await navigator.clipboard.writeText(text);
 
@@ -435,8 +433,8 @@ async function accessParticipant(roomId, pin, errorTarget) {
     saveParticipantSession(roomId, data.session);
     history.replaceState(null, "", `#room=${roomId}`);
     showParticipantForm();
-    if (pendingParticipantAction) selectParticipantAction(pendingParticipantAction);
-    pendingParticipantAction = null;
+    if (pendingParticipantAction === "edit") selectParticipantAction("edit");
+    pendingParticipantAction = "new";
   } catch (error) {
     showError(errorTarget, error.message);
   }
@@ -447,20 +445,17 @@ function showParticipantForm() {
   $("participantRoomCode").textContent = formatRoomId(participantRoomId);
   $("participantRoomTitle").textContent = participantRoomTitle;
   $("participantSuccess").classList.add("hidden");
-  $("participantNewCard").classList.add("hidden");
-  $("participantUpdateCard").classList.add("hidden");
   $("participantActionChooser").classList.remove("hidden");
-  $("participantNewChoiceBtn").setAttribute("aria-pressed", "false");
-  $("participantEditChoiceBtn").setAttribute("aria-pressed", "false");
   $("participantForm").reset();
   $("participantUpdateForm").reset();
   $("participantUpdateForm").classList.remove("hidden");
   $("participantUpdateSuccess").classList.add("hidden");
   hideError("participantUpdateError");
   hideError("participantFormError");
+  selectParticipantAction("new", false);
 }
 
-function selectParticipantAction(action) {
+function selectParticipantAction(action, focus = true) {
   const edit = action === "edit";
   $("participantNewCard").classList.toggle("hidden", edit);
   $("participantUpdateCard").classList.toggle("hidden", !edit);
@@ -468,12 +463,14 @@ function selectParticipantAction(action) {
   $("participantEditChoiceBtn").setAttribute("aria-pressed", String(edit));
   hideError("participantUpdateError");
   hideError("participantFormError");
-  const firstInput = edit
-    ? $("participantUpdateForm").querySelector('input[name="email"]')
-    : $("participantForm").querySelector('input[name="name"]');
-  firstInput.focus({ preventScroll: true });
-  (edit ? $("participantUpdateCard") : $("participantNewCard"))
-    .scrollIntoView({ behavior: "smooth", block: "start" });
+  if (focus) {
+    const firstInput = edit
+      ? $("participantUpdateForm").querySelector('input[name="email"]')
+      : $("participantForm").querySelector('input[name="name"]');
+    firstInput.focus({ preventScroll: true });
+    (edit ? $("participantUpdateCard") : $("participantNewCard"))
+      .scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 }
 
 async function submitParticipant(event) {
@@ -669,7 +666,8 @@ async function boot() {
 
   if (hashRoom) {
     participantRoomId = hashRoom;
-    pendingParticipantAction = null;
+    pendingParticipantAction = "new";
+    chooseJoinAction("new");
     const session = readParticipantSession(hashRoom);
 
     if (session) {
