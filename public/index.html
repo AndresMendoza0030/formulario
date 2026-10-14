@@ -271,7 +271,21 @@
         <div class="eyebrow">Acceso de aspirante</div>
         <h1>Ingresar al formulario</h1>
         <p class="lead">Sala <strong id="participantJoinCode"></strong>.</p>
-        <p class="participant-access-note">Este mismo enlace sirve para registrarse por primera vez o para completar el título de un trabajo registrado anteriormente. Después de ingresar la clave, elija la opción que corresponda.</p>
+        <p class="participant-access-note">Este mismo enlace sirve para registrarse por primera vez o para completar el título de un trabajo registrado anteriormente. Seleccione una opción, ingrese la clave y continúe. Si ya se registró, no necesita llenar una nueva inscripción.</p>
+      </div>
+
+      <div class="participant-join-choice">
+        <div class="eyebrow">¿Qué desea hacer?</div>
+        <div class="participant-choice-grid">
+          <button id="joinNewChoiceBtn" type="button" class="participant-choice-card" aria-pressed="false">
+            <strong>Registrarme por primera vez</strong>
+            <span>Enviar una nueva hoja de registro.</span>
+          </button>
+          <button id="joinEditChoiceBtn" type="button" class="participant-choice-card" aria-pressed="false">
+            <strong>Ya me registré: actualizar mi respuesta</strong>
+            <span>Añadir el título pendiente de mi trabajo.</span>
+          </button>
+        </div>
       </div>
 
       <label class="field-label">Clave de aspirante<input id="participantJoinPin" maxlength="8" inputmode="numeric" autocomplete="one-time-code" placeholder="00000000" /></label>
