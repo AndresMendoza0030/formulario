@@ -85,15 +85,38 @@ Para una base de datos creada desde cero, `schema.sql` ya incluye la columna y n
 
 El logotipo y el botón «Inicio» del encabezado llevan a la portada. El botón «Administración» abre el panel si existe una sesión activa o el acceso administrativo en caso contrario.
 
-## Completar títulos de registros anteriores
+## Actualización de registros existentes por correo
 
-Los aspirantes que enviaron su formulario antes de que se solicitara el título pueden entrar con el enlace/código y clave de su hoja, y seleccionar **«Agregar título a mi registro anterior»**.
+En la misma invitación se muestran las opciones **Registrarme** (preseleccionada) y **Actualizar mi registro**.
 
-Se pide el correo y número de CONADEM originales, además del título nuevo (entre 3 y 200 caracteres). El sistema identifica un único registro de esa hoja y **solo actualiza `work_title` si estaba vacío**. Si hay registros duplicados con los mismos datos o el título ya está completado, el registro se deja intacto y se indica contactar a la administración. No se expone el listado de aspirantes ni se crea un registro nuevo.
+La actualización solicita **solo el correo original** como identificador (la búsqueda ignora mayúsculas y espacios de los extremos). La app envía un código de 8 dígitos al correo; únicamente tras verificarlo se muestran nombre, teléfono, correo, número de CONADEM, tipo y título del trabajo, todos editables. El código vence a los 10 minutos y admite hasta 5 intentos. La sesión de edición dura 30 minutos; no se almacena en el navegador de forma persistente.
 
-No hay ninguna migración adicional: se utiliza `participants.work_title`, introducida por `0004_work_title.sql`. En una D1 existente, ejecutar `npm run db:migrate-work-title` una única vez antes de desplegar si aún no se ha aplicado.
+El acceso a la sala sigue requiriendo el código de sala y clave de aspirante. Un correo no verificado nunca permite ver ni modificar datos ajenos. Si hay dos registros con el mismo correo en la misma sala, el aspirante debe acudir al administrador para resolver la duplicidad.
 
-**Nota de seguridad:** el correo y CONADEM no demuestran propiedad del buzón: son una comprobación básica junto con la clave de acceso a la hoja. Esto no equivale a iniciar sesión con un código enviado al correo. La aplicación no puede reconocer de forma fiable a los aspirantes anteriores solo por dispositivo porque no guardaba identificadores individuales.
+### Configuración obligatoria para una D1 existente
+
+Antes de desplegar el Worker actualizado, ejecute **una sola vez**:
+
+```bash
+npm run db:migrate-participant-edit
+```
+
+Esta migración crea únicamente tablas nuevas de verificación y sesión, sin borrar ni modificar los registros actuales. En una base D1 nueva, ejecutar `schema.sql` es suficiente.
+
+### Configuración de envío de códigos
+
+Se utiliza **Resend** para enviar los mensajes de verificación; necesita un dominio remitente verificado en esa plataforma. Configure estos dos secretos en Cloudflare Workers (nombre del Worker: `formulario`):
+
+```bash
+npx wrangler secret put RESEND_API_KEY
+npx wrangler secret put EDIT_FROM_EMAIL
+```
+
+El segundo valor es el remitente autorizado, por ejemplo: `Sociedad de Radiología <registros@tu-dominio.com>`.
+
+No ponga la clave de Resend en GitHub ni en `wrangler.jsonc`. Si no se han configurado los secretos, el inicio de actualización muestra un aviso y **no expone ningún dato personal**. El formulario nuevo y el acceso administrativo permanecen disponibles.
+
+Una vez aplicadas la migración y las dos configuraciones, despliegue nuevamente `main` y pruebe con un registro de prueba y un correo de destino real.
 
 ## Estructura
 
@@ -103,6 +126,7 @@ src/worker.js
 schema.sql
 migrations/0003_admin_accounts.sql
 migrations/0004_work_title.sql
+migrations/0005_participant_edit.sql
 wrangler.jsonc
 package.json
 ```
