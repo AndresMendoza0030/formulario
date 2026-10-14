@@ -313,26 +313,55 @@
         <div class="section-heading">
           <div class="section-number">01</div>
           <div>
-            <div class="eyebrow">Para aspirantes ya inscritos</div>
-            <h2>Completar mi registro anterior</h2>
-            <p>Si se registró antes de que se solicitara el título, puede agregarlo sin volver a llenar el formulario. Los demás datos se conservarán.</p>
+            <div class="eyebrow">Registro existente</div>
+            <h2>Actualizar mi registro</h2>
           </div>
         </div>
-        <form id="participantUpdateForm">
-          <p class="participant-update-help">Use el correo electrónico y número de CONADEM de su registro anterior.</p>
-          <div class="form-grid">
-            <label class="field-label">Correo electrónico original<input name="email" type="email" required maxlength="120" autocomplete="email" /></label>
-            <label class="field-label">Nro. de CONADEM original<input name="conadem" required maxlength="60" autocomplete="off" /></label>
-          </div>
-          <label class="field-label work-title-field">Título del trabajo
-            <input name="workTitle" type="text" required minlength="3" maxlength="200" autocomplete="off" placeholder="Escriba el título de su trabajo" />
+
+        <form id="participantEditEmailForm">
+          <label class="field-label work-title-field">Correo electrónico
+            <input name="email" type="email" required maxlength="120" autocomplete="email" />
           </label>
           <div class="form-footer">
-            <p id="participantUpdateError" class="error hidden" role="alert"></p>
-            <button id="participantUpdateSubmitBtn" type="submit" class="primary">Guardar título pendiente</button>
+            <button id="participantSendCodeBtn" class="primary" type="submit">Enviar código</button>
           </div>
         </form>
-        <p id="participantUpdateSuccess" class="status participant-update-success hidden" role="status">Su título se añadió correctamente al registro anterior. No necesita registrarse de nuevo.</p>
+
+        <form id="participantEditCodeForm" class="hidden">
+          <p class="participant-update-help">Ingrese el código recibido en su correo.</p>
+          <label class="field-label work-title-field">Código de verificación
+            <input name="code" type="text" required inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{8}" minlength="8" maxlength="8" placeholder="8 dígitos" />
+          </label>
+          <div class="form-footer">
+            <button id="participantEditBackBtn" type="button" class="secondary">Cambiar correo</button>
+            <button id="participantVerifyCodeBtn" type="submit" class="primary">Verificar</button>
+          </div>
+        </form>
+
+        <form id="participantUpdateForm" class="hidden">
+          <div class="form-grid">
+            <label class="field-label full">Nombre completo<input name="name" required maxlength="120" autocomplete="name" /></label>
+            <label class="field-label">Teléfono<input name="phone" required maxlength="40" autocomplete="tel" inputmode="tel" /></label>
+            <label class="field-label">Correo electrónico<input name="email" type="email" required maxlength="120" autocomplete="email" /></label>
+            <label class="field-label full">Nro. de CONADEM<input name="conadem" required maxlength="60" /></label>
+          </div>
+          <fieldset class="work-type">
+            <legend>Tipo de trabajo</legend>
+            <div class="choice-grid">
+              <label class="choice-card"><input type="radio" name="workType" value="A" required /><span class="choice-letter">A</span><span class="choice-text"><strong>Trabajo de investigación</strong></span></label>
+              <label class="choice-card"><input type="radio" name="workType" value="B" required /><span class="choice-letter">B</span><span class="choice-text"><strong>Monografía</strong></span></label>
+              <label class="choice-card"><input type="radio" name="workType" value="C" required /><span class="choice-letter">C</span><span class="choice-text"><strong>Caso interesante</strong></span></label>
+            </div>
+          </fieldset>
+          <label class="field-label work-title-field">Título del trabajo
+            <input name="workTitle" minlength="3" maxlength="200" autocomplete="off" placeholder="Título de su trabajo" />
+          </label>
+          <div class="form-footer">
+            <button id="participantUpdateSubmitBtn" type="submit" class="primary">Guardar cambios</button>
+          </div>
+        </form>
+        <p id="participantUpdateError" class="error hidden" role="alert"></p>
+        <p id="participantUpdateSuccess" class="status participant-update-success hidden" role="status">Registro actualizado correctamente.</p>
       </section>
 
       <section id="participantNewCard" class="institutional-panel form-card hidden">
