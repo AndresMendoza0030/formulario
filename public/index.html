@@ -287,9 +287,37 @@
         </div>
       </header>
 
-      <section class="institutional-panel form-card">
+      <section id="participantUpdateCard" class="institutional-panel form-card participant-update-card">
         <div class="section-heading">
           <div class="section-number">01</div>
+          <div>
+            <div class="eyebrow">Para aspirantes ya inscritos</div>
+            <h2>¿Ya llenó su formulario?</h2>
+            <p>Si se registró antes de que se solicitara el título, puede añadirlo sin volver a registrarse.</p>
+          </div>
+        </div>
+        <button id="toggleParticipantUpdateBtn" class="secondary" type="button">Agregar título a mi registro anterior</button>
+
+        <form id="participantUpdateForm" class="hidden">
+          <p class="participant-update-help">Use el correo electrónico y número de CONADEM de su registro anterior.</p>
+          <div class="form-grid">
+            <label class="field-label">Correo electrónico original<input name="email" type="email" required maxlength="120" autocomplete="email" /></label>
+            <label class="field-label">Nro. de CONADEM original<input name="conadem" required maxlength="60" autocomplete="off" /></label>
+          </div>
+          <label class="field-label work-title-field">Título del trabajo
+            <input name="workTitle" type="text" required minlength="3" maxlength="200" autocomplete="off" placeholder="Escriba el título de su trabajo" />
+          </label>
+          <div class="form-footer">
+            <p id="participantUpdateError" class="error hidden" role="alert"></p>
+            <button id="participantUpdateSubmitBtn" type="submit" class="primary">Guardar título pendiente</button>
+          </div>
+        </form>
+        <p id="participantUpdateSuccess" class="status participant-update-success hidden" role="status">Su título se añadió correctamente al registro anterior. No necesita registrarse de nuevo.</p>
+      </section>
+
+      <section class="institutional-panel form-card">
+        <div class="section-heading">
+          <div class="section-number">02</div>
           <div>
             <div class="eyebrow">Datos del aspirante</div>
             <h2>Información de registro</h2>
