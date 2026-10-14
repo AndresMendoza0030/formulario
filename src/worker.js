@@ -136,9 +136,7 @@ async function cleanupSessions(env) {
   try {
     await env.DB.batch([
       env.DB.prepare("DELETE FROM room_sessions WHERE expires_at <= ?1").bind(now),
-      env.DB.prepare("DELETE FROM admin_sessions WHERE expires_at <= ?1").bind(now),
-      env.DB.prepare("DELETE FROM participant_edit_codes WHERE expires_at <= ?1").bind(now),
-      env.DB.prepare("DELETE FROM participant_edit_sessions WHERE expires_at <= ?1").bind(now)
+      env.DB.prepare("DELETE FROM admin_sessions WHERE expires_at <= ?1").bind(now)
     ]);
   } catch (_) {}
 }
@@ -566,14 +564,16 @@ async function addParticipant(request, env, roomId) {
 }
 
 
-const EDIT_CODE_TTL = 10 * 60 * 1000;
-const EDIT_SESSION_TTL = 30 * 60 * 1000;
-const EDIT_CODE_ATTEMPTS = 5;
-const EDIT_CODE_COOLDOWN = 90 * 1000;
-
+// Edición asociada a la sala y a los identificadores originales proporcionados.
 function publicParticipant(p) {
-  return { name:p.name, phone:p.phone, email:p.email, conadem:p.conadem,
-    workType:p.workType, workTitle:p.workTitle };
+  return {
+    name: p.name, phone: p.phone, email: p.email, conadem: p.conadem,
+    workType: p.workType, workTitle: p.workTitle
+  };
+}
+
+function normalizeConadem(value) {
+  return String(value || "").trim().toLowerCase();
 }
 
 function validateEditableParticipant(value) {
@@ -588,154 +588,82 @@ function validateEditableParticipant(value) {
   if (!validateEmail(email) || email.length > 120) throw new Error("Revise el correo electrónico.");
   if (!conadem || conadem.length > 60) throw new Error("Revise el número de CONADEM.");
   if (!WORK_TYPES.has(workType)) throw new Error("Seleccione un tipo de trabajo válido.");
-  if (workTitle && (workTitle.length < 3 || workTitle.length > 200)) throw new Error("El título debe tener entre 3 y 200 caracteres.");
+  if (workTitle && (workTitle.length < 3 || workTitle.length > 200)) {
+    throw new Error("El título debe tener entre 3 y 200 caracteres.");
+  }
   return { name, phone, email, conadem, workType, workTitle };
 }
 
-async function requestParticipantEditCode(request, env, roomId) {
-  if (!await getParticipantSession(request, env, roomId))
-    return fail("La sesión de la sala venció. Ingrese la clave nuevamente.", 401);
-  if (!env.RESEND_API_KEY || !env.EDIT_FROM_EMAIL)
-    return fail("La verificación por correo aún no está configurada. Contacte al administrador.", 503);
-
-  const body = await readJson(request);
-  const email = normalizeEmail(body?.email);
-  if (!validateEmail(email) || email.length > 120) return fail("Ingrese un correo válido.", 400);
-  const generic = "Si el correo corresponde a un registro único, recibirá un código para editarlo.";
-
-  const previous = await env.DB.prepare(
-    "SELECT created_at AS createdAt FROM participant_edit_codes WHERE room_id = ?1 AND email = ?2"
-  ).bind(roomId, email).first();
-  if (previous && Date.parse(previous.createdAt) > Date.now() - EDIT_CODE_COOLDOWN)
-    return json({ ok: true, message: generic });
-
-  const matches = await env.DB.prepare(
-    "SELECT id FROM participants WHERE room_id = ?1 AND LOWER(TRIM(email)) = ?2 LIMIT 2"
-  ).bind(roomId, email).all();
-  if ((matches.results || []).length !== 1) return json({ ok: true, message: generic });
-
-  const code = String(crypto.getRandomValues(new Uint32Array(1))[0] % 100000000).padStart(8, "0");
-  const salt = crypto.getRandomValues(new Uint8Array(16));
-  const hash = await deriveHash(code, salt);
-  const id = crypto.randomUUID();
-  const createdAt = new Date().toISOString();
-  const expiresAt = new Date(Date.now() + EDIT_CODE_TTL).toISOString();
-
-  await env.DB.prepare(
-    "INSERT INTO participant_edit_codes " +
-    "(id,room_id,email,code_salt,code_hash,attempts,created_at,expires_at) " +
-    "VALUES (?1,?2,?3,?4,?5,0,?6,?7) " +
-    "ON CONFLICT(room_id,email) DO UPDATE SET " +
-    "id=excluded.id,code_salt=excluded.code_salt,code_hash=excluded.code_hash," +
-    "attempts=0,created_at=excluded.created_at,expires_at=excluded.expires_at"
-  ).bind(id,roomId,email,toBase64Url(salt),hash,createdAt,expiresAt).run();
-
-  let delivered = false;
-  try {
-    const response = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: { authorization: "Bearer " + env.RESEND_API_KEY, "content-type": "application/json" },
-      body: JSON.stringify({
-        from: env.EDIT_FROM_EMAIL,
-        to: [email],
-        subject: "Código para actualizar su registro",
-        text: "Su código de verificación es: " + code +
-          "\nVence en 10 minutos. Si no lo solicitó, ignore este correo."
-      })
-    });
-    delivered = response.ok;
-    if (!delivered) console.error("Resend send failed", response.status);
-  } catch (error) {
-    console.error("Resend send failed", error instanceof Error ? error.message : "unknown");
-  }
-  if (!delivered) {
-    await env.DB.prepare("DELETE FROM participant_edit_codes WHERE id = ?1").bind(id).run();
-    return fail("No se pudo enviar el código. Contacte al administrador.", 503);
-  }
-  return json({ ok: true, message: generic });
-}
-
-async function verifyParticipantEditCode(request, env, roomId) {
-  if (!await getParticipantSession(request, env, roomId))
-    return fail("La sesión de la sala venció. Ingrese la clave nuevamente.", 401);
-  const body = await readJson(request);
-  const email = normalizeEmail(body?.email);
-  const code = String(body?.code || "").trim();
-  const rejected = "Código incorrecto, vencido o sin registro único. Solicite otro código o contacte al administrador.";
-  if (!validateEmail(email) || email.length > 120 || !/^\d{8}$/.test(code))
-    return fail(rejected, 400);
-
-  const found = await env.DB.prepare(
-    "SELECT id,code_hash AS codeHash,code_salt AS codeSalt FROM participant_edit_codes " +
-    "WHERE room_id = ?1 AND email = ?2 AND expires_at > ?3 AND attempts < ?4"
-  ).bind(roomId,email,new Date().toISOString(),EDIT_CODE_ATTEMPTS).first();
-  if (!found) return fail(rejected, 401);
-
-  const attempt = await env.DB.prepare(
-    "UPDATE participant_edit_codes SET attempts = attempts + 1 " +
-    "WHERE id = ?1 AND attempts < ?2 AND expires_at > ?3"
-  ).bind(found.id,EDIT_CODE_ATTEMPTS,new Date().toISOString()).run();
-  if (Number(attempt.meta?.changes || 0) !== 1) return fail(rejected, 401);
-  const candidate = await deriveHash(code, fromBase64Url(found.codeSalt));
-  if (!safeEqual(candidate,found.codeHash)) return fail(rejected, 401);
-
-  const result = await env.DB.prepare(
+async function findEditableParticipant(env, roomId, email, conadem) {
+  const rows = await env.DB.prepare(
     "SELECT id,name,phone,email,conadem,work_type AS workType,work_title AS workTitle " +
-    "FROM participants WHERE room_id = ?1 AND LOWER(TRIM(email)) = ?2 LIMIT 2"
-  ).bind(roomId,email).all();
-  if ((result.results || []).length !== 1) return fail(rejected, 401);
-  const participant = result.results[0];
-  await env.DB.prepare("DELETE FROM participant_edit_codes WHERE id = ?1").bind(found.id).run();
-
-  const token = randomToken();
-  const createdAt = new Date().toISOString();
-  const expiresAt = new Date(Date.now() + EDIT_SESSION_TTL).toISOString();
-  await env.DB.prepare(
-    "INSERT INTO participant_edit_sessions (token_hash,room_id,participant_id,created_at,expires_at) " +
-    "VALUES (?1,?2,?3,?4,?5)"
-  ).bind(await sha256(token),roomId,participant.id,createdAt,expiresAt).run();
-  return json({ ok: true, editToken: token, expiresAt, participant: publicParticipant(participant) });
+    "FROM participants WHERE room_id = ?1 AND LOWER(TRIM(email)) = ?2 " +
+    "AND LOWER(TRIM(conadem)) = ?3 LIMIT 2"
+  ).bind(roomId, email, conadem).all();
+  return rows.results || [];
 }
 
-async function requireParticipantEdit(request, env, roomId) {
-  if (!await getParticipantSession(request, env, roomId)) return null;
-  const token = String(request.headers.get("x-edit-token") || "").trim();
-  if (!token || token.length > 150) return null;
-  return env.DB.prepare(
-    "SELECT p.id,p.name,p.phone,p.email,p.conadem,p.work_type AS workType,p.work_title AS workTitle " +
-    "FROM participant_edit_sessions s INNER JOIN participants p " +
-    "ON p.id=s.participant_id AND p.room_id=s.room_id " +
-    "INNER JOIN rooms r ON r.id=s.room_id AND r.active=1 " +
-    "WHERE s.token_hash=?1 AND s.room_id=?2 AND s.expires_at>?3 LIMIT 1"
-  ).bind(await sha256(token),roomId,new Date().toISOString()).first();
-}
+async function lookupParticipantForEdit(request, env, roomId) {
+  if (!await getParticipantSession(request, env, roomId)) {
+    return fail("La sesión de la sala venció. Introduzca nuevamente la clave.", 401);
+  }
+  const body = await readJson(request);
+  const email = normalizeEmail(body?.email);
+  const conadem = normalizeConadem(body?.conadem);
+  if (!validateEmail(email) || email.length > 120 || !conadem || conadem.length > 60) {
+    return fail("Revise su correo electrónico y número de CONADEM.", 400);
+  }
 
-async function getParticipantForEdit(request, env, roomId) {
-  const participant = await requireParticipantEdit(request, env, roomId);
-  if (!participant) return fail("Su acceso de edición venció. Solicite un nuevo código.", 401);
-  return json({ ok: true, participant: publicParticipant(participant) });
+  const matches = await findEditableParticipant(env, roomId, email, conadem);
+  if (matches.length !== 1) {
+    return fail("No se encontró un registro único con esos datos. Consulte al administrador si necesita ayuda.", 404);
+  }
+  return json({ ok: true, participant: publicParticipant(matches[0]) });
 }
 
 async function saveParticipantEdit(request, env, roomId) {
-  const current = await requireParticipantEdit(request, env, roomId);
-  if (!current) return fail("Su acceso de edición venció. Solicite un nuevo código.", 401);
+  if (!await getParticipantSession(request, env, roomId)) {
+    return fail("La sesión de la sala venció. Introduzca nuevamente la clave.", 401);
+  }
+  const body = await readJson(request);
+  const originalEmail = normalizeEmail(body?.originalEmail);
+  const originalConadem = normalizeConadem(body?.originalConadem);
+  if (!validateEmail(originalEmail) || originalEmail.length > 120 ||
+      !originalConadem || originalConadem.length > 60) {
+    return fail("Vuelva a buscar su registro por correo y CONADEM.", 400);
+  }
+
   let participant;
-  try { participant = validateEditableParticipant(await readJson(request)); }
+  try { participant = validateEditableParticipant(body); }
   catch (error) { return fail(error.message, 400); }
 
-  const duplicate = await env.DB.prepare(
-    "SELECT id FROM participants WHERE room_id=?1 AND LOWER(TRIM(email))=?2 AND id<>?3 LIMIT 1"
-  ).bind(roomId,participant.email,current.id).first();
-  if (duplicate) return fail("Este correo ya figura en otro registro de la misma hoja.", 409);
+  const matches = await findEditableParticipant(env, roomId, originalEmail, originalConadem);
+  if (matches.length !== 1) {
+    return fail("No se encontró un registro único con los datos originales. Vuelva a buscar.", 409);
+  }
+  const id = matches[0].id;
+  const other = await env.DB.prepare(
+    "SELECT id FROM participants WHERE room_id = ?1 AND LOWER(TRIM(email)) = ?2 " +
+    "AND id <> ?3 LIMIT 1"
+  ).bind(roomId, participant.email, id).first();
+  if (other) return fail("El correo ya pertenece a otro registro en esta hoja.", 409);
 
-  await env.DB.prepare(
-    "UPDATE participants SET name=?1,phone=?2,email=?3,conadem=?4,work_type=?5,work_title=?6 " +
-    "WHERE id=?7 AND room_id=?8"
-  ).bind(participant.name,participant.phone,participant.email,participant.conadem,
-    participant.workType,participant.workTitle,current.id,roomId).run();
-  await env.DB.prepare("UPDATE rooms SET updated_at=?1 WHERE id=?2")
-    .bind(new Date().toISOString(),roomId).run();
-  return json({ok:true,participant});
+  const updated = await env.DB.prepare(
+    "UPDATE participants SET name = ?1, phone = ?2, email = ?3, conadem = ?4, " +
+    "work_type = ?5, work_title = ?6 " +
+    "WHERE id = ?7 AND room_id = ?8 AND LOWER(TRIM(email)) = ?9 " +
+    "AND LOWER(TRIM(conadem)) = ?10"
+  ).bind(
+    participant.name, participant.phone, participant.email, participant.conadem,
+    participant.workType, participant.workTitle, id, roomId, originalEmail, originalConadem
+  ).run();
+  if (Number(updated.meta?.changes || 0) !== 1) {
+    return fail("El registro cambió. Vuelva a cargarlo antes de guardar.", 409);
+  }
+
+  await env.DB.prepare("UPDATE rooms SET updated_at = ?1 WHERE id = ?2")
+    .bind(new Date().toISOString(), roomId).run();
+  return json({ ok: true, participant: publicParticipant(participant) });
 }
 
 async function routeApi(request, env) {
@@ -785,20 +713,12 @@ async function routeApi(request, env) {
     return accessParticipantRoom(request, env, accessMatch[1]);
   }
 
-  const editStart = path.match(/^\/api\/rooms\/([A-Z2-9]{12})\/edit\/start$/);
-  if (request.method === "POST" && editStart) {
-    return requestParticipantEditCode(request, env, editStart[1]);
-  }
-
-  const editVerify = path.match(/^\/api\/rooms\/([A-Z2-9]{12})\/edit\/verify$/);
-  if (request.method === "POST" && editVerify) {
-    return verifyParticipantEditCode(request, env, editVerify[1]);
+  const editLookup = path.match(/^\/api\/rooms\/([A-Z2-9]{12})\/edit\/lookup$/);
+  if (request.method === "POST" && editLookup) {
+    return lookupParticipantForEdit(request, env, editLookup[1]);
   }
 
   const editRecord = path.match(/^\/api\/rooms\/([A-Z2-9]{12})\/edit$/);
-  if (request.method === "GET" && editRecord) {
-    return getParticipantForEdit(request, env, editRecord[1]);
-  }
   if (request.method === "PUT" && editRecord) {
     return saveParticipantEdit(request, env, editRecord[1]);
   }
