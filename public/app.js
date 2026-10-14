@@ -444,6 +444,13 @@ function showParticipantForm() {
   $("participantRoomTitle").textContent = participantRoomTitle;
   $("participantSuccess").classList.add("hidden");
   $("participantForm").closest(".form-card").classList.remove("hidden");
+  $("participantUpdateCard").classList.remove("hidden");
+  $("participantUpdateForm").reset();
+  $("participantUpdateForm").classList.add("hidden");
+  $("participantUpdateSuccess").classList.add("hidden");
+  $("toggleParticipantUpdateBtn").classList.remove("hidden");
+  $("toggleParticipantUpdateBtn").textContent = "Agregar título a mi registro anterior";
+  hideError("participantUpdateError");
 }
 
 async function submitParticipant(event) {
@@ -473,6 +480,7 @@ async function submitParticipant(event) {
 
     form.reset();
     form.closest(".form-card").classList.add("hidden");
+    $("participantUpdateCard").classList.add("hidden");
     $("participantSuccess").classList.remove("hidden");
   } catch (error) {
     if (error.status === 401) {
@@ -485,6 +493,50 @@ async function submitParticipant(event) {
     }
 
     showError("participantFormError", error.message);
+  } finally {
+    button.disabled = false;
+    button.textContent = original;
+  }
+}
+
+async function submitParticipantUpdate(event) {
+  event.preventDefault();
+
+  const form = event.currentTarget;
+  const data = new FormData(form);
+  const button = $("participantUpdateSubmitBtn");
+  const original = button.textContent;
+
+  try {
+    hideError("participantUpdateError");
+    button.disabled = true;
+    button.textContent = "Guardando…";
+
+    await participantApi("/api/rooms/" + participantRoomId + "/participants/complete-title", {
+      method: "POST",
+      body: JSON.stringify({
+        email: String(data.get("email") || "").trim(),
+        conadem: String(data.get("conadem") || "").trim(),
+        workTitle: String(data.get("workTitle") || "").trim()
+      })
+    });
+
+    form.reset();
+    form.classList.add("hidden");
+    $("toggleParticipantUpdateBtn").classList.add("hidden");
+    $("participantForm").closest(".form-card").classList.add("hidden");
+    $("participantUpdateSuccess").classList.remove("hidden");
+  } catch (error) {
+    if (error.status === 401) {
+      sessionStorage.removeItem(participantSessionKey(participantRoomId));
+      participantSessionToken = null;
+      showOnly("participantJoin");
+      $("participantJoinCode").textContent = formatRoomId(participantRoomId);
+      showError("participantJoinError", "La sesión venció. Introduzca nuevamente la clave.");
+      return;
+    }
+
+    showError("participantUpdateError", error.message);
   } finally {
     button.disabled = false;
     button.textContent = original;
@@ -574,6 +626,17 @@ $("participantJoinBtn").addEventListener("click", () => {
 });
 
 $("participantForm").addEventListener("submit", submitParticipant);
+$("toggleParticipantUpdateBtn").addEventListener("click", () => {
+  const form = $("participantUpdateForm");
+  form.classList.toggle("hidden");
+  const opened = !form.classList.contains("hidden");
+  $("toggleParticipantUpdateBtn").textContent = opened
+    ? "Cancelar actualización"
+    : "Agregar título a mi registro anterior";
+  hideError("participantUpdateError");
+  if (opened) form.querySelector("input[name='email']").focus();
+});
+$("participantUpdateForm").addEventListener("submit", submitParticipantUpdate);
 $("csvBtn").addEventListener("click", exportCsv);
 $("printBtn").addEventListener("click", () => window.print());
 
